@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Loader2 } from 'lucide-react';
@@ -9,17 +9,21 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireTeam = false }: ProtectedRouteProps) {
-  const { user, profile, teamMemberships, isLoading, signOut } = useAuth();
+  const { user, profile, teamMemberships, isLoading, refreshProfile } = useAuth();
   const location = useLocation();
+  const [hasCheckedProfile, setHasCheckedProfile] = useState(false);
 
-  // If user exists but has no profile, sign them out
+  // When user exists but no profile, try refreshing once
   useEffect(() => {
-    if (!isLoading && user && !profile) {
-      console.log('User has no profile, signing out...');
-      signOut();
+    if (!isLoading && user && !profile && !hasCheckedProfile) {
+      console.log('User has no profile, refreshing...');
+      refreshProfile().then(() => {
+        setHasCheckedProfile(true);
+      });
     }
-  }, [isLoading, user, profile, signOut]);
+  }, [isLoading, user, profile, hasCheckedProfile, refreshProfile]);
 
+  // Still loading initial auth state
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -28,12 +32,22 @@ export function ProtectedRoute({ children, requireTeam = false }: ProtectedRoute
     );
   }
 
+  // Not authenticated
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // User exists but no profile - will be signed out by useEffect above
-  if (!profile) {
+  // User exists but waiting for profile check
+  if (!profile && !hasCheckedProfile) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // User exists but confirmed no profile after refresh - redirect to signup
+  if (!profile && hasCheckedProfile) {
     return <Navigate to="/signup" replace />;
   }
 
