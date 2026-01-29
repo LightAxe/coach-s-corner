@@ -31,10 +31,21 @@ export default function VerifyOtp() {
     if (otp.length !== 6) return;
 
     setIsLoading(true);
-    const { error, isNewUser } = await verifyOtp(email, otp);
+    const { error, isNewUser, needsSignup } = await verifyOtp(email, otp);
     setIsLoading(false);
 
     if (error) {
+      // If they need to sign up first, redirect them
+      if (needsSignup) {
+        toast({
+          title: 'Account not found',
+          description: 'Please create an account first.',
+          variant: 'destructive',
+        });
+        navigate('/signup');
+        return;
+      }
+      
       toast({
         title: 'Verification failed',
         description: error.message,
