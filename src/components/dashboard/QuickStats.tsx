@@ -1,13 +1,16 @@
 import { Users, CheckCircle, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from '@/lib/utils';
 
 interface QuickStatsProps {
   totalAthletes: number;
   workoutsCompleted: number;
   weeklyMiles: number;
+  isLoading?: boolean;
 }
 
-export function QuickStats({ totalAthletes, workoutsCompleted, weeklyMiles }: QuickStatsProps) {
+export function QuickStats({ totalAthletes, workoutsCompleted, weeklyMiles, isLoading }: QuickStatsProps) {
   const stats = [
     {
       label: 'Athletes',
@@ -32,6 +35,24 @@ export function QuickStats({ totalAthletes, workoutsCompleted, weeklyMiles }: Qu
     },
   ];
 
+  if (isLoading) {
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {stats.map((stat) => (
+          <Card key={stat.label}>
+            <CardContent className="flex items-center gap-4 p-4">
+              <Skeleton className="h-11 w-11 rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-12" />
+                <Skeleton className="h-4 w-20" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {stats.map((stat) => (
@@ -49,8 +70,4 @@ export function QuickStats({ totalAthletes, workoutsCompleted, weeklyMiles }: Qu
       ))}
     </div>
   );
-}
-
-function cn(...classes: (string | boolean | undefined)[]) {
-  return classes.filter(Boolean).join(' ');
 }

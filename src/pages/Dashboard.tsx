@@ -3,18 +3,22 @@ import { TodayWorkout } from '@/components/dashboard/TodayWorkout';
 import { AnnouncementCard } from '@/components/dashboard/AnnouncementCard';
 import { WeekPreview } from '@/components/dashboard/WeekPreview';
 import { QuickStats } from '@/components/dashboard/QuickStats';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
-  getTodayWorkout, 
-  scheduledWorkouts, 
-  announcements, 
-  athletes,
-  workoutLogs 
-} from '@/lib/mock-data';
+  useTodayWorkout, 
+  useScheduledWorkouts, 
+  useAnnouncements, 
+  useTeamStats 
+} from '@/hooks/useDashboardData';
 
 export default function Dashboard() {
-  const todayWorkout = getTodayWorkout();
-  const today = new Date().toISOString().split('T')[0];
-  const todayLogs = workoutLogs.filter(log => log.completedAt === today);
+  const { currentTeam } = useAuth();
+  const teamId = currentTeam?.id;
+
+  const { data: todayWorkout, isLoading: todayLoading } = useTodayWorkout(teamId);
+  const { data: weekWorkouts = [], isLoading: weekLoading } = useScheduledWorkouts(teamId);
+  const { data: announcements = [], isLoading: announcementsLoading } = useAnnouncements(teamId);
+  const { data: stats, isLoading: statsLoading } = useTeamStats(teamId);
 
   return (
     <AppLayout>
@@ -29,22 +33,23 @@ export default function Dashboard() {
 
         {/* Quick stats */}
         <QuickStats 
-          totalAthletes={athletes.length}
-          workoutsCompleted={todayLogs.length}
-          weeklyMiles={142}
+          totalAthletes={stats?.totalAthletes ?? 0}
+          workoutsCompleted={stats?.workoutsCompleted ?? 0}
+          weeklyMiles={stats?.weeklyMiles ?? 0}
+          isLoading={statsLoading}
         />
 
         {/* Main content grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column */}
           <div className="space-y-6">
-            <TodayWorkout workout={todayWorkout} />
-            <AnnouncementCard announcements={announcements} />
+            <TodayWorkout workout={todayWorkout} isLoading={todayLoading} />
+            <AnnouncementCard announcements={announcements} isLoading={announcementsLoading} />
           </div>
 
           {/* Right column */}
           <div>
-            <WeekPreview workouts={scheduledWorkouts} />
+            <WeekPreview workouts={weekWorkouts} isLoading={weekLoading} />
           </div>
         </div>
       </div>

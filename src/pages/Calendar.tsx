@@ -1,25 +1,36 @@
 import { useState } from 'react';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
-import { format, startOfWeek, addDays, isSameDay, parseISO } from 'date-fns';
+import { format, startOfWeek, addDays, isSameDay, parseISO, addWeeks, subWeeks } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { scheduledWorkouts, getWorkoutTypeBadgeClass } from '@/lib/mock-data';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useAuth } from '@/contexts/AuthContext';
+import { useScheduledWorkoutsRange } from '@/hooks/useDashboardData';
+import { getWorkoutTypeBadgeClass } from '@/lib/types';
 import { cn } from '@/lib/utils';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
+  const weekEnd = addDays(weekStart, 6);
+  
+  const { currentTeam } = useAuth();
+  const { data: workouts = [], isLoading } = useScheduledWorkoutsRange(
+    currentTeam?.id, 
+    weekStart, 
+    weekEnd
+  );
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const goToPrevWeek = () => {
-    setCurrentDate(addDays(currentDate, -7));
+    setCurrentDate(subWeeks(currentDate, 1));
   };
 
   const goToNextWeek = () => {
-    setCurrentDate(addDays(currentDate, 7));
+    setCurrentDate(addWeeks(currentDate, 1));
   };
 
   const goToToday = () => {
@@ -27,8 +38,8 @@ export default function Calendar() {
   };
 
   const getWorkoutForDay = (date: Date) => {
-    return scheduledWorkouts.find((w) =>
-      isSameDay(parseISO(w.date), date)
+    return workouts.find((w) =>
+      isSameDay(parseISO(w.scheduled_date), date)
     );
   };
 
@@ -63,7 +74,7 @@ export default function Calendar() {
             </Button>
           </div>
           <h2 className="text-lg font-semibold">
-            {format(weekStart, 'MMMM d')} - {format(addDays(weekStart, 6), 'MMMM d, yyyy')}
+            {format(weekStart, 'MMMM d')} - {format(weekEnd, 'MMMM d, yyyy')}
           </h2>
         </div>
 
@@ -99,7 +110,13 @@ export default function Calendar() {
                     )}
                   </div>
 
-                  {workout ? (
+                  {isLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-5 w-14" />
+                      <Skeleton className="h-4 w-20" />
+                      <Skeleton className="h-3 w-12" />
+                    </div>
+                  ) : workout ? (
                     <div className="space-y-2">
                       <Badge 
                         variant="outline" 
