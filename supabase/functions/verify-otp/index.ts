@@ -69,7 +69,7 @@ serve(async (req) => {
       .update({ used: true })
       .eq("id", otpRecord.id);
 
-    // Check if user exists
+    // Check if user exists in auth
     const { data: existingUsers } = await supabase.auth.admin.listUsers();
     const existingUser = existingUsers?.users?.find(
       (u) => u.email?.toLowerCase() === email.toLowerCase()
@@ -77,12 +77,70 @@ serve(async (req) => {
 
     let userId: string;
     let isNewUser = false;
+    let hasProfile = false;
 
     if (existingUser) {
-      // Existing user - just return their info
       userId = existingUser.id;
+      
+      // Check if they have a profile
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
+      
+      hasProfile = !!profileData;
+      
+      // If no profile and no signup data, they need to sign up first
+      if (!hasProfile && !signupData) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "No account found. Please sign up first.",
+            needsSignup: true
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+      
+      // If they have signup data but no profile, create the profile
+      if (!hasProfile && signupData) {
+        const { error: profileError } = await supabase.from("profiles").insert({
+          id: userId,
+          first_name: signupData.firstName,
+          last_name: signupData.lastName,
+          email: email.toLowerCase(),
+          phone: signupData.phone || null,
+          role: signupData.role,
+        });
+
+        if (profileError) {
+          console.error("Error creating profile:", profileError);
+        } else {
+          hasProfile = true;
+          isNewUser = true;
+        }
+      }
     } else {
-      // New user - create account
+      // New user - need signup data
+      if (!signupData) {
+        return new Response(
+          JSON.stringify({ 
+            success: false, 
+            error: "No account found. Please sign up first.",
+            needsSignup: true
+          }),
+          {
+            status: 400,
+            headers: { "Content-Type": "application/json", ...corsHeaders },
+          }
+        );
+      }
+      
+      // Create new user
       const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
         email: email.toLowerCase(),
         email_confirm: true,
@@ -96,21 +154,18 @@ serve(async (req) => {
       userId = newUser.user.id;
       isNewUser = true;
 
-      // Create profile if signup data provided
-      if (signupData) {
-        const { error: profileError } = await supabase.from("profiles").insert({
-          id: userId,
-          first_name: signupData.firstName,
-          last_name: signupData.lastName,
-          email: email.toLowerCase(),
-          phone: signupData.phone || null,
-          role: signupData.role,
-        });
+      // Create profile
+      const { error: profileError } = await supabase.from("profiles").insert({
+        id: userId,
+        first_name: signupData.firstName,
+        last_name: signupData.lastName,
+        email: email.toLowerCase(),
+        phone: signupData.phone || null,
+        role: signupData.role,
+      });
 
-        if (profileError) {
-          console.error("Error creating profile:", profileError);
-          // Don't throw - user is created, profile can be created later
-        }
+      if (profileError) {
+        console.error("Error creating profile:", profileError);
       }
     }
 

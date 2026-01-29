@@ -32,7 +32,7 @@ interface AuthContextType {
   pendingSignupData: PendingSignupData | null;
   setPendingSignupData: (data: PendingSignupData | null) => void;
   sendOtp: (email: string) => Promise<{ error: Error | null }>;
-  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null; isNewUser: boolean }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null; isNewUser: boolean; needsSignup?: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   setCurrentTeam: (team: { id: string; name: string; join_code: string } | null) => void;
@@ -188,6 +188,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const data = await response.json();
       
       if (!response.ok || !data.success) {
+        // Check if user needs to sign up
+        if (data.needsSignup) {
+          return { error: new Error(data.error || 'No account found'), isNewUser: false, needsSignup: true };
+        }
         throw new Error(data.error || 'Invalid verification code');
       }
 
@@ -217,9 +221,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      return { error: null, isNewUser };
+      return { error: null, isNewUser, needsSignup: false };
     } catch (error) {
-      return { error: error as Error, isNewUser: false };
+      return { error: error as Error, isNewUser: false, needsSignup: false };
     }
   };
 
