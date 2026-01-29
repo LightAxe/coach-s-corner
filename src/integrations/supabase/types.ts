@@ -14,16 +14,437 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      announcements: {
+        Row: {
+          content: string | null
+          created_at: string
+          created_by: string
+          id: string
+          team_id: string
+          title: string
+        }
+        Insert: {
+          content?: string | null
+          created_at?: string
+          created_by: string
+          id?: string
+          team_id: string
+          title: string
+        }
+        Update: {
+          content?: string | null
+          created_at?: string
+          created_by?: string
+          id?: string
+          team_id?: string
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcements_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_athlete_links: {
+        Row: {
+          athlete_id: string
+          created_at: string
+          id: string
+          parent_id: string
+        }
+        Insert: {
+          athlete_id: string
+          created_at?: string
+          id?: string
+          parent_id: string
+        }
+        Update: {
+          athlete_id?: string
+          created_at?: string
+          id?: string
+          parent_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_athlete_links_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_athlete_links_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          email: string | null
+          first_name: string
+          id: string
+          last_name: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          first_name: string
+          id: string
+          last_name: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          first_name?: string
+          id?: string
+          last_name?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      prs: {
+        Row: {
+          achieved_at: string
+          created_at: string
+          custom_distance: string | null
+          distance: Database["public"]["Enums"]["distance_type"]
+          id: string
+          notes: string | null
+          profile_id: string
+          time_seconds: number
+          updated_at: string
+        }
+        Insert: {
+          achieved_at: string
+          created_at?: string
+          custom_distance?: string | null
+          distance: Database["public"]["Enums"]["distance_type"]
+          id?: string
+          notes?: string | null
+          profile_id: string
+          time_seconds: number
+          updated_at?: string
+        }
+        Update: {
+          achieved_at?: string
+          created_at?: string
+          custom_distance?: string | null
+          distance?: Database["public"]["Enums"]["distance_type"]
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          time_seconds?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      scheduled_workouts: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          distance: string | null
+          id: string
+          scheduled_date: string
+          team_id: string
+          template_id: string | null
+          title: string
+          type: Database["public"]["Enums"]["workout_type"]
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          distance?: string | null
+          id?: string
+          scheduled_date: string
+          team_id: string
+          template_id?: string | null
+          title: string
+          type?: Database["public"]["Enums"]["workout_type"]
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          distance?: string | null
+          id?: string
+          scheduled_date?: string
+          team_id?: string
+          template_id?: string | null
+          title?: string
+          type?: Database["public"]["Enums"]["workout_type"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scheduled_workouts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_workouts_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_workouts_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "workout_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_memberships: {
+        Row: {
+          created_at: string
+          id: string
+          profile_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          profile_id: string
+          role: Database["public"]["Enums"]["user_role"]
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          profile_id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_memberships_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_memberships_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teams: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          join_code: string
+          name: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          join_code: string
+          name: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          join_code?: string
+          name?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_logs: {
+        Row: {
+          completed: boolean
+          created_at: string
+          effort_level: number | null
+          how_felt: string | null
+          id: string
+          notes: string | null
+          profile_id: string
+          scheduled_workout_id: string
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          created_at?: string
+          effort_level?: number | null
+          how_felt?: string | null
+          id?: string
+          notes?: string | null
+          profile_id: string
+          scheduled_workout_id: string
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          created_at?: string
+          effort_level?: number | null
+          how_felt?: string | null
+          id?: string
+          notes?: string | null
+          profile_id?: string
+          scheduled_workout_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_logs_scheduled_workout_id_fkey"
+            columns: ["scheduled_workout_id"]
+            isOneToOne: false
+            referencedRelation: "scheduled_workouts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      workout_templates: {
+        Row: {
+          created_at: string
+          created_by: string
+          description: string | null
+          distance: string | null
+          id: string
+          name: string
+          team_id: string
+          type: Database["public"]["Enums"]["workout_type"]
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          description?: string | null
+          distance?: string | null
+          id?: string
+          name: string
+          team_id: string
+          type?: Database["public"]["Enums"]["workout_type"]
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          description?: string | null
+          distance?: string | null
+          id?: string
+          name?: string
+          team_id?: string
+          type?: Database["public"]["Enums"]["workout_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "workout_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_templates_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      can_view_athlete: { Args: { _athlete_id: string }; Returns: boolean }
+      get_linked_athlete_ids: {
+        Args: { _parent_id: string }
+        Returns: string[]
+      }
+      get_team_ids_for_profile: {
+        Args: { _profile_id: string }
+        Returns: string[]
+      }
+      is_parent_of_athlete: {
+        Args: { _athlete_id: string; _parent_id: string }
+        Returns: boolean
+      }
+      is_team_coach: {
+        Args: { _profile_id: string; _team_id: string }
+        Returns: boolean
+      }
+      is_team_member: {
+        Args: { _profile_id: string; _team_id: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      distance_type:
+        | "1600m"
+        | "3000m"
+        | "5000m"
+        | "3200m"
+        | "mile"
+        | "2mile"
+        | "other"
+      user_role: "coach" | "athlete" | "parent"
+      workout_type:
+        | "easy"
+        | "tempo"
+        | "interval"
+        | "long"
+        | "rest"
+        | "race"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +571,26 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      distance_type: [
+        "1600m",
+        "3000m",
+        "5000m",
+        "3200m",
+        "mile",
+        "2mile",
+        "other",
+      ],
+      user_role: ["coach", "athlete", "parent"],
+      workout_type: [
+        "easy",
+        "tempo",
+        "interval",
+        "long",
+        "rest",
+        "race",
+        "other",
+      ],
+    },
   },
 } as const
