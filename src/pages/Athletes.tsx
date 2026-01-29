@@ -1,39 +1,36 @@
 import { useState } from 'react';
-import { Plus, Search, Trophy, ChevronRight } from 'lucide-react';
+import { Search, UserPlus, Mail, Users, Trophy, ChevronRight } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { athletes, raceDistances } from '@/lib/mock-data';
-import { cn } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTeamMembers } from '@/hooks/useDashboardData';
 
 export default function Athletes() {
-  const { isCoach } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
-  const [genderFilter, setGenderFilter] = useState<'all' | 'M' | 'F'>('all');
-  
+  const { currentTeam, isCoach } = useAuth();
+  const { data: members = [], isLoading } = useTeamMembers(currentTeam?.id);
+
   // Redirect non-coaches
   if (!isCoach) {
     return <Navigate to="/" replace />;
   }
 
-  const filteredAthletes = athletes.filter((athlete) => {
-    const matchesSearch = athlete.name.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesGender = genderFilter === 'all' || athlete.gender === genderFilter;
-    return matchesSearch && matchesGender;
+  const filteredMembers = members.filter((member) => {
+    const fullName = `${member.profiles.first_name} ${member.profiles.last_name}`.toLowerCase();
+    return fullName.includes(searchQuery.toLowerCase());
   });
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('');
-  };
+  const athletes = filteredMembers.filter(m => m.role === 'athlete');
+  const coaches = filteredMembers.filter(m => m.role === 'coach');
 
-  const getPRForDistance = (athleteId: string, distanceId: string) => {
-    const athlete = athletes.find(a => a.id === athleteId);
-    return athlete?.prs.find(pr => pr.distanceId === distanceId);
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName[0]}${lastName[0]}`;
   };
 
   return (
@@ -42,118 +39,160 @@ export default function Athletes() {
         {/* Page header */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-heading font-bold">Athletes</h1>
+            <h1 className="text-2xl font-heading font-bold">Team Roster</h1>
             <p className="text-muted-foreground">
-              Manage your team roster and track individual progress
+              Manage your team members and athletes
             </p>
           </div>
           <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Athlete
+            <UserPlus className="h-4 w-4" />
+            Invite Member
           </Button>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col sm:flex-row gap-4">
-          <div className="relative flex-1 max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search athletes..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9"
-            />
-          </div>
-          <div className="flex gap-2">
-            <Button
-              variant={genderFilter === 'all' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setGenderFilter('all')}
-            >
-              All
-            </Button>
-            <Button
-              variant={genderFilter === 'M' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setGenderFilter('M')}
-            >
-              Boys
-            </Button>
-            <Button
-              variant={genderFilter === 'F' ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setGenderFilter('F')}
-            >
-              Girls
-            </Button>
-          </div>
+        {/* Search */}
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search members..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
         </div>
 
-        {/* Athletes list */}
-        <div className="space-y-3">
-          {filteredAthletes.map((athlete) => (
-            <Card key={athlete.id} className="hover:shadow-sm transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-center gap-4">
-                  <Avatar className="h-12 w-12">
-                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                      {getInitials(athlete.name)}
-                    </AvatarFallback>
-                  </Avatar>
-                  
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <h3 className="font-semibold">{athlete.name}</h3>
-                      <Badge variant="secondary" className="text-xs">
-                        Grade {athlete.grade}
-                      </Badge>
-                      <Badge 
-                        variant="outline" 
-                        className={cn(
-                          'text-xs',
-                          athlete.gender === 'M' ? 'border-info/30 text-info' : 'border-accent/50 text-accent'
+        {/* Coaches section */}
+        {(coaches.length > 0 || isLoading) && (
+          <div className="space-y-4">
+            <h2 className="text-lg font-semibold flex items-center gap-2">
+              <Users className="h-5 w-5" />
+              Coaches
+            </h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {isLoading ? (
+                [1, 2].map((i) => (
+                  <Card key={i}>
+                    <CardContent className="flex items-center gap-4 p-4">
+                      <Skeleton className="h-12 w-12 rounded-full" />
+                      <div className="space-y-2">
+                        <Skeleton className="h-4 w-24" />
+                        <Skeleton className="h-3 w-32" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              ) : (
+                coaches.map((member) => (
+                  <Card key={member.id}>
+                    <CardContent className="flex items-center gap-4 p-4">
+                      <Avatar className="h-12 w-12">
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                          {getInitials(member.profiles.first_name, member.profiles.last_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">
+                          {member.profiles.first_name} {member.profiles.last_name}
+                        </p>
+                        {member.profiles.email && (
+                          <p className="text-sm text-muted-foreground truncate flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {member.profiles.email}
+                          </p>
                         )}
-                      >
-                        {athlete.gender === 'M' ? 'Boys' : 'Girls'}
-                      </Badge>
-                    </div>
-                    
-                    {/* PRs inline */}
-                    <div className="flex flex-wrap gap-3 text-sm">
-                      {raceDistances.slice(0, 2).map((distance) => {
-                        const pr = getPRForDistance(athlete.id, distance.id);
-                        return (
-                          <div key={distance.id} className="flex items-center gap-1.5">
-                            <Trophy className="h-3.5 w-3.5 text-accent" />
-                            <span className="text-muted-foreground">{distance.name}:</span>
-                            <span className="font-medium">
-                              {pr ? pr.time : '—'}
-                            </span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
+                      </div>
+                      <Badge variant="secondary">Coach</Badge>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
+            </div>
+          </div>
+        )}
 
-                  <Link to={`/athletes/${athlete.id}`}>
-                    <Button variant="ghost" size="icon">
-                      <ChevronRight className="h-5 w-5" />
-                    </Button>
-                  </Link>
-                </div>
+        {/* Athletes section */}
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Athletes ({isLoading ? '...' : athletes.length})
+          </h2>
+          
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i}>
+                  <CardContent className="flex items-center gap-4 p-4">
+                    <Skeleton className="h-12 w-12 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-48" />
+                    </div>
+                    <Skeleton className="h-8 w-8" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          ) : athletes.length === 0 ? (
+            <Card className="border-dashed">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <Users className="h-10 w-10 text-muted-foreground mb-3" />
+                <p className="text-muted-foreground text-center mb-4">
+                  No athletes on your team yet
+                </p>
+                <Button variant="outline">
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  Invite Athletes
+                </Button>
               </CardContent>
             </Card>
-          ))}
+          ) : (
+            <div className="space-y-3">
+              {athletes.map((member) => (
+                <Card key={member.id} className="hover:shadow-sm transition-shadow">
+                  <CardContent className="p-4">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="h-12 w-12">
+                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                          {getInitials(member.profiles.first_name, member.profiles.last_name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h3 className="font-semibold">
+                            {member.profiles.first_name} {member.profiles.last_name}
+                          </h3>
+                        </div>
+                        
+                        {member.profiles.email && (
+                          <p className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Mail className="h-3 w-3" />
+                            {member.profiles.email}
+                          </p>
+                        )}
+                      </div>
+
+                      <Link to={`/athletes/${member.profile_id}`}>
+                        <Button variant="ghost" size="icon">
+                          <ChevronRight className="h-5 w-5" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
 
-        {filteredAthletes.length === 0 && (
+        {!isLoading && filteredMembers.length === 0 && searchQuery && (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <p className="text-muted-foreground text-center mb-4">
-                No athletes found
+                No members found matching "{searchQuery}"
               </p>
-              <Button variant="outline" onClick={() => { setSearchQuery(''); setGenderFilter('all'); }}>
-                Clear Filters
+              <Button variant="outline" onClick={() => setSearchQuery('')}>
+                Clear Search
               </Button>
             </CardContent>
           </Card>
