@@ -1,4 +1,4 @@
-import { useAuth, UserRole } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -8,45 +8,51 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, Shield, Users } from 'lucide-react';
+import { User, Shield, Users, LogOut } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
-const roleConfig: Record<UserRole, { label: string; icon: typeof User }> = {
-  coach: { label: 'Coach', icon: Shield },
-  athlete: { label: 'Athlete', icon: User },
-  parent: { label: 'Parent', icon: Users },
+const roleIcons = {
+  coach: Shield,
+  athlete: User,
+  parent: Users,
 };
 
 export function RoleSwitcher() {
-  const { user, setMockRole } = useAuth();
-  const currentRole = user?.role || 'coach';
-  const CurrentIcon = roleConfig[currentRole].icon;
+  const { profile, signOut } = useAuth();
+  const navigate = useNavigate();
+  
+  if (!profile) return null;
+
+  const Icon = roleIcons[profile.role] || User;
+  const displayName = `${profile.first_name} ${profile.last_name}`;
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate('/login');
+  };
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2">
-          <CurrentIcon className="h-4 w-4" />
-          <span className="hidden sm:inline">{roleConfig[currentRole].label}</span>
+          <Icon className="h-4 w-4" />
+          <span className="hidden sm:inline truncate max-w-[120px]">{displayName}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuLabel className="text-xs text-muted-foreground">
-          Demo: Switch Role
+        <DropdownMenuLabel className="font-normal">
+          <div className="flex flex-col space-y-1">
+            <p className="text-sm font-medium leading-none">{displayName}</p>
+            <p className="text-xs leading-none text-muted-foreground capitalize">
+              {profile.role}
+            </p>
+          </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {(Object.keys(roleConfig) as UserRole[]).map((role) => {
-          const Icon = roleConfig[role].icon;
-          return (
-            <DropdownMenuItem
-              key={role}
-              onClick={() => setMockRole(role)}
-              className={currentRole === role ? 'bg-muted' : ''}
-            >
-              <Icon className="h-4 w-4 mr-2" />
-              {roleConfig[role].label}
-            </DropdownMenuItem>
-          );
-        })}
+        <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
+          <LogOut className="h-4 w-4 mr-2" />
+          Sign out
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   );
