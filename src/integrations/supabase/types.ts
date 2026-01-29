@@ -56,6 +56,33 @@ export type Database = {
           },
         ]
       }
+      otp_codes: {
+        Row: {
+          code: string
+          created_at: string
+          email: string
+          expires_at: string
+          id: string
+          used: boolean
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          email: string
+          expires_at: string
+          id?: string
+          used?: boolean
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          email?: string
+          expires_at?: string
+          id?: string
+          used?: boolean
+        }
+        Relationships: []
+      }
       parent_athlete_links: {
         Row: {
           athlete_id: string
@@ -409,6 +436,7 @@ export type Database = {
     }
     Functions: {
       can_view_athlete: { Args: { _athlete_id: string }; Returns: boolean }
+      cleanup_expired_otp_codes: { Args: never; Returns: undefined }
       get_linked_athlete_ids: {
         Args: { _parent_id: string }
         Returns: string[]

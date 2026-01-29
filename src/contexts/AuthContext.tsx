@@ -138,14 +138,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const sendOtp = async (email: string) => {
     try {
-      const { error } = await supabase.auth.signInWithOtp({
-        email,
-        options: {
-          shouldCreateUser: true,
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({ email }),
         }
-      });
+      );
+
+      const data = await response.json();
       
-      if (error) throw error;
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Failed to send verification code');
+      }
+      
       return { error: null };
     } catch (error) {
       return { error: error as Error };
@@ -154,37 +164,56 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyOtp = async (email: string, token: string) => {
     try {
-      const { data, error } = await supabase.auth.verifyOtp({
-        email,
-        token,
-        type: 'email'
-      });
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+          },
+          body: JSON.stringify({
+            email,
+            code: token,
+            signupData: pendingSignupData ? {
+              firstName: pendingSignupData.firstName,
+              lastName: pendingSignupData.lastName,
+              phone: pendingSignupData.phone,
+              role: pendingSignupData.role,
+            } : undefined,
+          }),
+        }
+      );
+
+      const data = await response.json();
       
-      if (error) throw error;
-      
-      // Check if this is a new user (no profile yet)
-      let isNewUser = false;
-      if (data.user) {
-        const existingProfile = await fetchProfile(data.user.id);
-        isNewUser = !existingProfile;
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Invalid verification code');
+      }
+
+      // Clear pending signup data after successful verification
+      const isNewUser = data.isNewUser;
+      if (isNewUser) {
+        setPendingSignupData(null);
+      }
+
+      // Use the action link to authenticate the user
+      if (data.actionLink) {
+        // Extract token from action link and verify
+        const url = new URL(data.actionLink);
+        const linkToken = url.searchParams.get('token');
+        const type = url.searchParams.get('type') as 'magiclink' | 'recovery' | 'invite' | 'email';
         
-        // If new user and we have pending signup data, create the profile
-        if (isNewUser && pendingSignupData) {
-          const { error: profileError } = await supabase
-            .from('profiles')
-            .insert({
-              id: data.user.id,
-              first_name: pendingSignupData.firstName,
-              last_name: pendingSignupData.lastName,
-              email: pendingSignupData.email,
-              phone: pendingSignupData.phone || null,
-              role: pendingSignupData.role
-            });
+        if (linkToken) {
+          const { error: verifyError } = await supabase.auth.verifyOtp({
+            token_hash: linkToken,
+            type: type || 'magiclink',
+          });
           
-          if (profileError) throw profileError;
-          
-          // Clear pending data after successful profile creation
-          setPendingSignupData(null);
+          if (verifyError) {
+            console.error('Session verification error:', verifyError);
+            throw verifyError;
+          }
         }
       }
       
