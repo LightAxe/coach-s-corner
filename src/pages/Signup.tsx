@@ -3,8 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Users, GraduationCap, Heart } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
+import { Loader2, Users, GraduationCap, Heart, Mail } from 'lucide-react';
+import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -18,7 +18,7 @@ const signupSchema = z.object({
   firstName: z.string().min(1, 'First name is required'),
   lastName: z.string().min(1, 'Last name is required'),
   email: z.string().email('Please enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
+  phone: z.string().optional(),
   role: z.enum(['coach', 'athlete', 'parent'], {
     required_error: 'Please select a role',
   }),
@@ -49,7 +49,7 @@ const roleOptions = [
 
 export default function Signup() {
   const [isLoading, setIsLoading] = useState(false);
-  const { signUp } = useAuth();
+  const { sendOtp, setPendingSignupData } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -59,7 +59,7 @@ export default function Signup() {
       firstName: '',
       lastName: '',
       email: '',
-      password: '',
+      phone: '',
       role: undefined,
     },
   });
@@ -68,32 +68,33 @@ export default function Signup() {
 
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
-    const { error } = await signUp(
-      data.email, 
-      data.password, 
-      data.firstName, 
-      data.lastName, 
-      data.role
-    );
+    
+    // Store signup data for after OTP verification
+    setPendingSignupData({
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      phone: data.phone,
+      role: data.role as UserRole,
+    });
+    
+    // Send OTP to email
+    const { error } = await sendOtp(data.email);
     setIsLoading(false);
 
     if (error) {
       toast({
-        title: 'Signup failed',
+        title: 'Failed to send code',
         description: error.message,
         variant: 'destructive',
       });
+      setPendingSignupData(null);
     } else {
       toast({
-        title: 'Account created!',
-        description: 'Welcome to Training Hub.',
+        title: 'Code sent!',
+        description: 'Check your email for the verification code.',
       });
-      // Navigate based on role
-      if (data.role === 'coach') {
-        navigate('/create-team');
-      } else {
-        navigate('/join-team');
-      }
+      navigate('/verify-otp', { state: { email: data.email, isSignup: true } });
     }
   };
 
@@ -155,12 +156,12 @@ export default function Signup() {
 
               <FormField
                 control={form.control}
-                name="password"
+                name="phone"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Password</FormLabel>
+                    <FormLabel>Phone Number <span className="text-muted-foreground font-normal">(optional)</span></FormLabel>
                     <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
+                      <Input type="tel" placeholder="(555) 123-4567" {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -206,8 +207,12 @@ export default function Signup() {
               />
 
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Create Account
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="mr-2 h-4 w-4" />
+                )}
+                Send verification code
               </Button>
             </form>
           </Form>

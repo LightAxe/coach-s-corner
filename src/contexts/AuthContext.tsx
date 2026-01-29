@@ -10,6 +10,15 @@ type TeamMembership = Tables<'team_memberships'> & {
   teams: { id: string; name: string; join_code: string } | null;
 };
 
+// Data stored during signup before OTP verification
+export interface PendingSignupData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  role: UserRole;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -20,8 +29,10 @@ interface AuthContextType {
   isCoach: boolean;
   isAthlete: boolean;
   isParent: boolean;
-  signUp: (email: string, password: string, firstName: string, lastName: string, role: UserRole) => Promise<{ error: Error | null }>;
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
+  pendingSignupData: PendingSignupData | null;
+  setPendingSignupData: (data: PendingSignupData | null) => void;
+  sendOtp: (email: string) => Promise<{ error: Error | null }>;
+  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null; isNewUser: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   setCurrentTeam: (team: { id: string; name: string; join_code: string } | null) => void;
@@ -36,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [teamMemberships, setTeamMemberships] = useState<TeamMembership[]>([]);
   const [currentTeam, setCurrentTeam] = useState<{ id: string; name: string; join_code: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [pendingSignupData, setPendingSignupData] = useState<PendingSignupData | null>(null);
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -124,56 +136,61 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const signUp = async (
-    email: string, 
-    password: string, 
-    firstName: string, 
-    lastName: string, 
-    role: UserRole
-  ) => {
+  const sendOtp = async (email: string) => {
     try {
-      const { data, error } = await supabase.auth.signUp({
+      const { error } = await supabase.auth.signInWithOtp({
         email,
-        password,
         options: {
-          emailRedirectTo: window.location.origin,
+          shouldCreateUser: true,
         }
       });
       
       if (error) throw error;
-      
-      if (data.user) {
-        // Create profile
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: data.user.id,
-            first_name: firstName,
-            last_name: lastName,
-            email: email,
-            role: role
-          });
-        
-        if (profileError) throw profileError;
-      }
-      
       return { error: null };
     } catch (error) {
       return { error: error as Error };
     }
   };
 
-  const signIn = async (email: string, password: string) => {
+  const verifyOtp = async (email: string, token: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data, error } = await supabase.auth.verifyOtp({
         email,
-        password
+        token,
+        type: 'email'
       });
       
       if (error) throw error;
-      return { error: null };
+      
+      // Check if this is a new user (no profile yet)
+      let isNewUser = false;
+      if (data.user) {
+        const existingProfile = await fetchProfile(data.user.id);
+        isNewUser = !existingProfile;
+        
+        // If new user and we have pending signup data, create the profile
+        if (isNewUser && pendingSignupData) {
+          const { error: profileError } = await supabase
+            .from('profiles')
+            .insert({
+              id: data.user.id,
+              first_name: pendingSignupData.firstName,
+              last_name: pendingSignupData.lastName,
+              email: pendingSignupData.email,
+              phone: pendingSignupData.phone || null,
+              role: pendingSignupData.role
+            });
+          
+          if (profileError) throw profileError;
+          
+          // Clear pending data after successful profile creation
+          setPendingSignupData(null);
+        }
+      }
+      
+      return { error: null, isNewUser };
     } catch (error) {
-      return { error: error as Error };
+      return { error: error as Error, isNewUser: false };
     }
   };
 
@@ -184,6 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null);
     setTeamMemberships([]);
     setCurrentTeam(null);
+    setPendingSignupData(null);
   };
 
   const isCoach = profile?.role === 'coach';
@@ -201,8 +219,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isCoach,
       isAthlete,
       isParent,
-      signUp,
-      signIn,
+      pendingSignupData,
+      setPendingSignupData,
+      sendOtp,
+      verifyOtp,
       signOut,
       refreshProfile,
       setCurrentTeam

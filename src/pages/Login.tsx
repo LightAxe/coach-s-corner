@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Mail } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,14 +13,13 @@ import { useToast } from '@/hooks/use-toast';
 
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
 export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
-  const { signIn } = useAuth();
+  const { sendOtp } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -28,23 +27,26 @@ export default function Login() {
     resolver: zodResolver(loginSchema),
     defaultValues: {
       email: '',
-      password: '',
     },
   });
 
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
-    const { error } = await signIn(data.email, data.password);
+    const { error } = await sendOtp(data.email);
     setIsLoading(false);
 
     if (error) {
       toast({
-        title: 'Login failed',
+        title: 'Failed to send code',
         description: error.message,
         variant: 'destructive',
       });
     } else {
-      navigate('/');
+      toast({
+        title: 'Code sent!',
+        description: 'Check your email for the verification code.',
+      });
+      navigate('/verify-otp', { state: { email: data.email, isSignup: false } });
     }
   };
 
@@ -56,7 +58,7 @@ export default function Login() {
             <span className="text-primary-foreground font-bold text-lg">XC</span>
           </div>
           <CardTitle className="text-2xl font-heading">Welcome back</CardTitle>
-          <CardDescription>Sign in to your Training Hub account</CardDescription>
+          <CardDescription>Enter your email to receive a sign-in code</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -70,32 +72,7 @@ export default function Login() {
                     <FormControl>
                       <Input 
                         type="email" 
-                        placeholder="coach@school.edu" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <div className="flex items-center justify-between">
-                      <FormLabel>Password</FormLabel>
-                      <Link 
-                        to="/forgot-password" 
-                        className="text-sm text-primary hover:underline"
-                      >
-                        Forgot password?
-                      </Link>
-                    </div>
-                    <FormControl>
-                      <Input 
-                        type="password" 
-                        placeholder="••••••••" 
+                        placeholder="you@email.com" 
                         {...field} 
                       />
                     </FormControl>
@@ -104,8 +81,12 @@ export default function Login() {
                 )}
               />
               <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                Sign In
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Mail className="mr-2 h-4 w-4" />
+                )}
+                Send me a code
               </Button>
             </form>
           </Form>
