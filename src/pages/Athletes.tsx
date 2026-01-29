@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Plus, Search, Trophy, ChevronRight } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,10 +9,17 @@ import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { athletes, raceDistances } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function Athletes() {
+  const { isCoach } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [genderFilter, setGenderFilter] = useState<'all' | 'M' | 'F'>('all');
+  
+  // Redirect non-coaches
+  if (!isCoach) {
+    return <Navigate to="/" replace />;
+  }
 
   const filteredAthletes = athletes.filter((athlete) => {
     const matchesSearch = athlete.name.toLowerCase().includes(searchQuery.toLowerCase());
