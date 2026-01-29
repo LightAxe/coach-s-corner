@@ -1,0 +1,226 @@
+import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Loader2, Users, GraduationCap, Heart } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Label } from '@/components/ui/label';
+import { useToast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+
+const signupSchema = z.object({
+  firstName: z.string().min(1, 'First name is required'),
+  lastName: z.string().min(1, 'Last name is required'),
+  email: z.string().email('Please enter a valid email'),
+  password: z.string().min(6, 'Password must be at least 6 characters'),
+  role: z.enum(['coach', 'athlete', 'parent'], {
+    required_error: 'Please select a role',
+  }),
+});
+
+type SignupFormData = z.infer<typeof signupSchema>;
+
+const roleOptions = [
+  {
+    value: 'coach' as const,
+    label: 'Coach',
+    description: 'Create teams, manage athletes, assign workouts',
+    icon: GraduationCap,
+  },
+  {
+    value: 'athlete' as const,
+    label: 'Athlete',
+    description: 'Join a team, log workouts, track PRs',
+    icon: Users,
+  },
+  {
+    value: 'parent' as const,
+    label: 'Parent',
+    description: 'View your child\'s progress (read-only)',
+    icon: Heart,
+  },
+];
+
+export default function Signup() {
+  const [isLoading, setIsLoading] = useState(false);
+  const { signUp } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const form = useForm<SignupFormData>({
+    resolver: zodResolver(signupSchema),
+    defaultValues: {
+      firstName: '',
+      lastName: '',
+      email: '',
+      password: '',
+      role: undefined,
+    },
+  });
+
+  const selectedRole = form.watch('role');
+
+  const onSubmit = async (data: SignupFormData) => {
+    setIsLoading(true);
+    const { error } = await signUp(
+      data.email, 
+      data.password, 
+      data.firstName, 
+      data.lastName, 
+      data.role
+    );
+    setIsLoading(false);
+
+    if (error) {
+      toast({
+        title: 'Signup failed',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } else {
+      toast({
+        title: 'Account created!',
+        description: 'Welcome to Training Hub.',
+      });
+      // Navigate based on role
+      if (data.role === 'coach') {
+        navigate('/create-team');
+      } else {
+        navigate('/join-team');
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+      <Card className="w-full max-w-md">
+        <CardHeader className="text-center">
+          <div className="mx-auto w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-4">
+            <span className="text-primary-foreground font-bold text-lg">XC</span>
+          </div>
+          <CardTitle className="text-2xl font-heading">Create your account</CardTitle>
+          <CardDescription>Join Training Hub to manage your training</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="firstName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>First Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="John" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="lastName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Last Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Doe" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input type="email" placeholder="you@email.com" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="role"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>I am a...</FormLabel>
+                    <FormControl>
+                      <RadioGroup
+                        onValueChange={field.onChange}
+                        value={field.value}
+                        className="grid gap-3"
+                      >
+                        {roleOptions.map((role) => (
+                          <Label
+                            key={role.value}
+                            htmlFor={role.value}
+                            className={cn(
+                              'flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all',
+                              selectedRole === role.value
+                                ? 'border-primary bg-primary/5'
+                                : 'border-border hover:border-muted-foreground/50'
+                            )}
+                          >
+                            <RadioGroupItem value={role.value} id={role.value} />
+                            <role.icon className="h-5 w-5 text-muted-foreground" />
+                            <div className="flex-1">
+                              <p className="font-medium">{role.label}</p>
+                              <p className="text-xs text-muted-foreground">{role.description}</p>
+                            </div>
+                          </Label>
+                        ))}
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Create Account
+              </Button>
+            </form>
+          </Form>
+        </CardContent>
+        <CardFooter>
+          <p className="text-sm text-muted-foreground text-center w-full">
+            Already have an account?{' '}
+            <Link to="/login" className="text-primary hover:underline font-medium">
+              Sign in
+            </Link>
+          </p>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
