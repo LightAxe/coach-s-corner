@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Trophy, Medal, Calendar } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
+import { Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,10 +17,17 @@ import {
 } from '@/components/ui/table';
 import { athletes, raceDistances, RaceDistance } from '@/lib/mock-data';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function PRBoard() {
+  const { isCoach } = useAuth();
   const [selectedDistance, setSelectedDistance] = useState<RaceDistance>(raceDistances[1]); // 5K by default
   const [genderFilter, setGenderFilter] = useState<'all' | 'M' | 'F'>('all');
+  
+  // Redirect non-coaches
+  if (!isCoach) {
+    return <Navigate to="/" replace />;
+  }
 
   const getInitials = (name: string) => {
     return name.split(' ').map(n => n[0]).join('');
