@@ -156,12 +156,11 @@ export function useTeamStats(teamId: string | undefined) {
     queryFn: async () => {
       if (!teamId) return { totalAthletes: 0, workoutsCompleted: 0, weeklyMiles: 0 };
       
-      // Get athlete count
+      // Get athlete count from team_athletes (includes shell + linked athletes)
       const { count: athleteCount, error: athleteError } = await supabase
-        .from('team_memberships')
+        .from('team_athletes')
         .select('*', { count: 'exact', head: true })
-        .eq('team_id', teamId)
-        .eq('role', 'athlete');
+        .eq('team_id', teamId);
       
       if (athleteError) throw athleteError;
       
