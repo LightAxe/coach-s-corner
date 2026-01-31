@@ -16,6 +16,7 @@ import Calendar from "./pages/Calendar";
 import Athletes from "./pages/Athletes";
 import AthleteDetail from "./pages/AthleteDetail";
 import Records from "./pages/Records";
+import TrainingJournal from "./pages/TrainingJournal";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -70,6 +71,11 @@ const App = () => (
               <Route path="/records" element={
                 <ProtectedRoute requireTeam>
                   <Records />
+                </ProtectedRoute>
+              } />
+              <Route path="/journal" element={
+                <ProtectedRoute requireTeam>
+                  <TrainingJournal />
                 </ProtectedRoute>
               } />
               
