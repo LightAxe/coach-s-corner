@@ -21,13 +21,6 @@ import {
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import {
   Popover,
@@ -35,7 +28,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover';
 import { useCreateRace } from '@/hooks/useRaces';
-import { useDistances } from '@/hooks/useDistances';
+
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveSeason } from '@/hooks/useSeasons';
 import { cn } from '@/lib/utils';
@@ -44,7 +37,6 @@ import { toast } from 'sonner';
 const formSchema = z.object({
   name: z.string().min(1, 'Race name is required'),
   race_date: z.date(),
-  distance_id: z.string().min(1, 'Distance is required'),
   location: z.string().optional(),
   details: z.string().optional(),
   transportation_info: z.string().optional(),
@@ -63,7 +55,6 @@ interface AddRaceDialogProps {
 export function AddRaceDialog({ open, onOpenChange, initialDate }: AddRaceDialogProps) {
   const { currentTeam, user } = useAuth();
   const { data: activeSeason } = useActiveSeason(currentTeam?.id);
-  const { data: distances = [] } = useDistances();
   const createRace = useCreateRace();
 
   const form = useForm<FormValues>({
@@ -71,7 +62,6 @@ export function AddRaceDialog({ open, onOpenChange, initialDate }: AddRaceDialog
     defaultValues: {
       name: '',
       race_date: initialDate || new Date(),
-      distance_id: '',
       location: '',
       details: '',
       transportation_info: '',
@@ -100,7 +90,6 @@ export function AddRaceDialog({ open, onOpenChange, initialDate }: AddRaceDialog
         season_id: activeSeason?.id || null,
         name: values.name,
         race_date: format(values.race_date, 'yyyy-MM-dd'),
-        distance_id: values.distance_id,
         location: values.location || undefined,
         details: values.details || undefined,
         transportation_info: values.transportation_info || undefined,
@@ -179,46 +168,19 @@ export function AddRaceDialog({ open, onOpenChange, initialDate }: AddRaceDialog
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="distance_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Distance</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select distance" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {distances.map((distance) => (
-                          <SelectItem key={distance.id} value={distance.id}>
-                            {distance.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="location"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Location</FormLabel>
-                    <FormControl>
-                      <Input placeholder="e.g., Central Park" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+            <FormField
+              control={form.control}
+              name="location"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Location</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Central Park" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <FormField
               control={form.control}
