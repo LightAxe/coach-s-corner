@@ -13,12 +13,6 @@ interface CreateRaceResultData {
   created_by: string;
 }
 
-interface UpdateRaceResultData {
-  id: string;
-  time_seconds?: number;
-  place?: number;
-  notes?: string;
-}
 
 // Fetch results for a specific race
 export function useRaceResults(raceId: string | undefined) {
@@ -156,6 +150,14 @@ export function useUpdateRaceResult() {
       queryClient.invalidateQueries({ queryKey: ['records'] });
     },
   });
+}
+
+interface UpdateRaceResultData {
+  id: string;
+  time_seconds?: number;
+  place?: number;
+  distance_id?: string;
+  notes?: string;
 }
 
 // Delete a race result

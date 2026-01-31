@@ -130,6 +130,7 @@ export function RaceDetailDialog({ race, open, onOpenChange }: RaceDetailDialogP
             <RaceResultsForm 
               raceId={race.id} 
               teamId={race.team_id}
+              defaultDistanceId={race.distance_id}
               onSaved={() => {}}
             />
           </TabsContent>
