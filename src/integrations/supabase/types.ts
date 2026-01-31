@@ -260,6 +260,58 @@ export type Database = {
           },
         ]
       }
+      team_athletes: {
+        Row: {
+          created_at: string
+          created_by: string
+          first_name: string
+          id: string
+          last_name: string
+          profile_id: string | null
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          first_name: string
+          id?: string
+          last_name: string
+          profile_id?: string | null
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          first_name?: string
+          id?: string
+          last_name?: string
+          profile_id?: string | null
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_athletes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_athletes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_athletes_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_memberships: {
         Row: {
           created_at: string
@@ -334,38 +386,60 @@ export type Database = {
       workout_logs: {
         Row: {
           completed: boolean
+          completion_status:
+            | Database["public"]["Enums"]["completion_status"]
+            | null
           created_at: string
           effort_level: number | null
           how_felt: string | null
           id: string
+          logged_by: string | null
           notes: string | null
-          profile_id: string
+          profile_id: string | null
           scheduled_workout_id: string
+          team_athlete_id: string | null
           updated_at: string
         }
         Insert: {
           completed?: boolean
+          completion_status?:
+            | Database["public"]["Enums"]["completion_status"]
+            | null
           created_at?: string
           effort_level?: number | null
           how_felt?: string | null
           id?: string
+          logged_by?: string | null
           notes?: string | null
-          profile_id: string
+          profile_id?: string | null
           scheduled_workout_id: string
+          team_athlete_id?: string | null
           updated_at?: string
         }
         Update: {
           completed?: boolean
+          completion_status?:
+            | Database["public"]["Enums"]["completion_status"]
+            | null
           created_at?: string
           effort_level?: number | null
           how_felt?: string | null
           id?: string
+          logged_by?: string | null
           notes?: string | null
-          profile_id?: string
+          profile_id?: string | null
           scheduled_workout_id?: string
+          team_athlete_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "workout_logs_logged_by_fkey"
+            columns: ["logged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "workout_logs_profile_id_fkey"
             columns: ["profile_id"]
@@ -378,6 +452,13 @@ export type Database = {
             columns: ["scheduled_workout_id"]
             isOneToOne: false
             referencedRelation: "scheduled_workouts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_logs_team_athlete_id_fkey"
+            columns: ["team_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "team_athletes"
             referencedColumns: ["id"]
           },
         ]
@@ -462,6 +543,7 @@ export type Database = {
       }
     }
     Enums: {
+      completion_status: "none" | "partial" | "complete"
       distance_type:
         | "1600m"
         | "3000m"
@@ -606,6 +688,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      completion_status: ["none", "partial", "complete"],
       distance_type: [
         "1600m",
         "3000m",

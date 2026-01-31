@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, UserPlus, Mail, Users, Trophy, ChevronRight } from 'lucide-react';
+import { Search, Mail, Users, ChevronRight } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -10,27 +10,37 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeamMembers } from '@/hooks/useDashboardData';
+import { useTeamAthletes } from '@/hooks/useTeamAthletes';
+import { AddAthleteDialog } from '@/components/athletes/AddAthleteDialog';
 
 export default function Athletes() {
   const [searchQuery, setSearchQuery] = useState('');
   const { currentTeam, isCoach } = useAuth();
-  const { data: members = [], isLoading } = useTeamMembers(currentTeam?.id);
+  const { data: members = [], isLoading: membersLoading } = useTeamMembers(currentTeam?.id);
+  const { data: teamAthletes = [], isLoading: athletesLoading } = useTeamAthletes(currentTeam?.id);
 
   // Redirect non-coaches
   if (!isCoach) {
     return <Navigate to="/" replace />;
   }
 
-  const filteredMembers = members.filter((member) => {
+  const isLoading = membersLoading || athletesLoading;
+
+  // Filter coaches from team_memberships
+  const coaches = members.filter(m => m.role === 'coach');
+  const filteredCoaches = coaches.filter((member) => {
     const fullName = `${member.profiles.first_name} ${member.profiles.last_name}`.toLowerCase();
     return fullName.includes(searchQuery.toLowerCase());
   });
 
-  const athletes = filteredMembers.filter(m => m.role === 'athlete');
-  const coaches = filteredMembers.filter(m => m.role === 'coach');
+  // Filter team athletes
+  const filteredAthletes = teamAthletes.filter((athlete) => {
+    const fullName = `${athlete.first_name} ${athlete.last_name}`.toLowerCase();
+    return fullName.includes(searchQuery.toLowerCase());
+  });
 
   const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0]}${lastName[0]}`;
+    return `${firstName[0]}${lastName[0]}`.toUpperCase();
   };
 
   return (
@@ -44,10 +54,7 @@ export default function Athletes() {
               Manage your team members and athletes
             </p>
           </div>
-          <Button className="gap-2">
-            <UserPlus className="h-4 w-4" />
-            Invite Member
-          </Button>
+          {currentTeam && <AddAthleteDialog teamId={currentTeam.id} />}
         </div>
 
         {/* Search */}
@@ -62,7 +69,7 @@ export default function Athletes() {
         </div>
 
         {/* Coaches section */}
-        {(coaches.length > 0 || isLoading) && (
+        {(filteredCoaches.length > 0 || isLoading) && (
           <div className="space-y-4">
             <h2 className="text-lg font-semibold flex items-center gap-2">
               <Users className="h-5 w-5" />
@@ -82,7 +89,7 @@ export default function Athletes() {
                   </Card>
                 ))
               ) : (
-                coaches.map((member) => (
+                filteredCoaches.map((member) => (
                   <Card key={member.id}>
                     <CardContent className="flex items-center gap-4 p-4">
                       <Avatar className="h-12 w-12">
@@ -114,7 +121,7 @@ export default function Athletes() {
         <div className="space-y-4">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Athletes ({isLoading ? '...' : athletes.length})
+            Athletes ({isLoading ? '...' : filteredAthletes.length})
           </h2>
           
           {isLoading ? (
@@ -132,60 +139,66 @@ export default function Athletes() {
                 </Card>
               ))}
             </div>
-          ) : athletes.length === 0 ? (
+          ) : filteredAthletes.length === 0 && !searchQuery ? (
             <Card className="border-dashed">
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Users className="h-10 w-10 text-muted-foreground mb-3" />
                 <p className="text-muted-foreground text-center mb-4">
                   No athletes on your team yet
                 </p>
-                <Button variant="outline">
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Invite Athletes
-                </Button>
+                {currentTeam && <AddAthleteDialog teamId={currentTeam.id} />}
               </CardContent>
             </Card>
           ) : (
             <div className="space-y-3">
-              {athletes.map((member) => (
-                <Card key={member.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <Avatar className="h-12 w-12">
-                        <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                          {getInitials(member.profiles.first_name, member.profiles.last_name)}
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="font-semibold">
-                            {member.profiles.first_name} {member.profiles.last_name}
-                          </h3>
-                        </div>
+              {filteredAthletes.map((athlete) => {
+                const isLinked = !!athlete.profile_id;
+                
+                return (
+                  <Card key={athlete.id} className="hover:shadow-sm transition-shadow">
+                    <CardContent className="p-4">
+                      <div className="flex items-center gap-4">
+                        <Avatar className="h-12 w-12">
+                          <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                            {getInitials(athlete.first_name, athlete.last_name)}
+                          </AvatarFallback>
+                        </Avatar>
                         
-                        {member.profiles.email && (
-                          <p className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Mail className="h-3 w-3" />
-                            {member.profiles.email}
-                          </p>
-                        )}
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h3 className="font-semibold">
+                              {athlete.first_name} {athlete.last_name}
+                            </h3>
+                            {!isLinked && (
+                              <Badge variant="outline" className="text-muted-foreground text-xs">
+                                Not in app
+                              </Badge>
+                            )}
+                          </div>
+                          
+                          {isLinked && athlete.profiles?.email && (
+                            <p className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Mail className="h-3 w-3" />
+                              {athlete.profiles.email}
+                            </p>
+                          )}
+                        </div>
 
-                      <Link to={`/athletes/${member.profile_id}`}>
-                        <Button variant="ghost" size="icon">
-                          <ChevronRight className="h-5 w-5" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                        <Link to={`/athletes/${athlete.id}`}>
+                          <Button variant="ghost" size="icon">
+                            <ChevronRight className="h-5 w-5" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
             </div>
           )}
         </div>
 
-        {!isLoading && filteredMembers.length === 0 && searchQuery && (
+        {!isLoading && filteredAthletes.length === 0 && filteredCoaches.length === 0 && searchQuery && (
           <Card className="border-dashed">
             <CardContent className="flex flex-col items-center justify-center py-12">
               <p className="text-muted-foreground text-center mb-4">

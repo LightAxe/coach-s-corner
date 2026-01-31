@@ -15,6 +15,7 @@ import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
 import Workouts from "./pages/Workouts";
 import Athletes from "./pages/Athletes";
+import AthleteDetail from "./pages/AthleteDetail";
 import PRBoard from "./pages/PRBoard";
 import NotFound from "./pages/NotFound";
 
@@ -65,6 +66,11 @@ const App = () => (
               <Route path="/athletes" element={
                 <ProtectedRoute requireTeam>
                   <Athletes />
+                </ProtectedRoute>
+              } />
+              <Route path="/athletes/:id" element={
+                <ProtectedRoute requireTeam>
+                  <AthleteDetail />
                 </ProtectedRoute>
               } />
               <Route path="/prs" element={
