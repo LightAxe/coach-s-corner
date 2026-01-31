@@ -7,7 +7,6 @@ interface CreateWorkoutData {
   created_by: string;
   title: string;
   type: WorkoutType;
-  distance: string | null;
   description: string | null;
   athlete_notes: string | null;
   scheduled_date: string;
@@ -28,7 +27,6 @@ export function useCreateScheduledWorkout() {
           created_by: data.created_by,
           title: data.title,
           type: data.type,
-          distance: data.distance,
           description: data.description,
           athlete_notes: data.athlete_notes,
           scheduled_date: data.scheduled_date,
@@ -63,7 +61,6 @@ export function useUpdateScheduledWorkout() {
       team_id: string;
       title?: string;
       type?: WorkoutType;
-      distance?: string | null;
       description?: string | null;
       athlete_notes?: string | null;
       scheduled_date?: string;

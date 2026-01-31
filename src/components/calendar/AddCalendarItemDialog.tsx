@@ -97,7 +97,6 @@ export function AddCalendarItemDialog({ open, onOpenChange, initialDate }: AddCa
 const workoutSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   type: z.enum(workoutTypes as unknown as [string, ...string[]]),
-  distance: z.string().optional(),
   description: z.string().optional(),
   athlete_notes: z.string().optional(),
   scheduled_date: z.date(),
@@ -121,7 +120,6 @@ function AddWorkoutForm({
     defaultValues: {
       title: '',
       type: 'easy',
-      distance: '',
       description: '',
       athlete_notes: '',
       scheduled_date: initialDate || new Date(),
@@ -137,7 +135,6 @@ function AddWorkoutForm({
         created_by: user.id,
         title: values.title,
         type: values.type as WorkoutType,
-        distance: values.distance || null,
         description: values.description || null,
         athlete_notes: values.athlete_notes || null,
         scheduled_date: format(values.scheduled_date, 'yyyy-MM-dd'),
@@ -229,19 +226,6 @@ function AddWorkoutForm({
             )}
           />
 
-          <FormField
-            control={form.control}
-            name="distance"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Distance</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., 6 miles" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
         </div>
 
         <FormField
