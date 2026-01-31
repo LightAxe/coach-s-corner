@@ -4,7 +4,6 @@ import {
   Home, 
   Calendar, 
   Users, 
-  Library, 
   Trophy,
   Menu,
   X
@@ -31,9 +30,8 @@ interface NavItem {
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Calendar', href: '/calendar', icon: Calendar },
-  { name: 'Workouts', href: '/workouts', icon: Library },
   { name: 'Athletes', href: '/athletes', icon: Users, coachOnly: true },
-  { name: 'PR Board', href: '/prs', icon: Trophy, coachOnly: true },
+  { name: 'Records', href: '/records', icon: Trophy, coachOnly: true },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {

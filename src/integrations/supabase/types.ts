@@ -59,6 +59,27 @@ export type Database = {
           },
         ]
       }
+      distances: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+        }
+        Relationships: []
+      }
       otp_codes: {
         Row: {
           code: string
@@ -155,66 +176,150 @@ export type Database = {
         }
         Relationships: []
       }
-      prs: {
+      race_results: {
         Row: {
-          achieved_at: string
+          achieved_at: string | null
           created_at: string
-          custom_distance: string | null
-          distance: string
+          created_by: string
+          distance_id: string | null
           id: string
           notes: string | null
-          profile_id: string | null
-          season_id: string | null
-          team_athlete_id: string | null
+          place: number | null
+          race_id: string | null
+          team_athlete_id: string
           time_seconds: number
-          updated_at: string
         }
         Insert: {
-          achieved_at: string
+          achieved_at?: string | null
           created_at?: string
-          custom_distance?: string | null
-          distance: string
+          created_by: string
+          distance_id?: string | null
           id?: string
           notes?: string | null
-          profile_id?: string | null
-          season_id?: string | null
-          team_athlete_id?: string | null
+          place?: number | null
+          race_id?: string | null
+          team_athlete_id: string
           time_seconds: number
-          updated_at?: string
         }
         Update: {
-          achieved_at?: string
+          achieved_at?: string | null
           created_at?: string
-          custom_distance?: string | null
-          distance?: string
+          created_by?: string
+          distance_id?: string | null
           id?: string
           notes?: string | null
-          profile_id?: string | null
-          season_id?: string | null
-          team_athlete_id?: string | null
+          place?: number | null
+          race_id?: string | null
+          team_athlete_id?: string
           time_seconds?: number
-          updated_at?: string
         }
         Relationships: [
           {
-            foreignKeyName: "prs_profile_id_fkey"
-            columns: ["profile_id"]
+            foreignKeyName: "race_results_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "prs_season_id_fkey"
+            foreignKeyName: "race_results_distance_id_fkey"
+            columns: ["distance_id"]
+            isOneToOne: false
+            referencedRelation: "distances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_results_race_id_fkey"
+            columns: ["race_id"]
+            isOneToOne: false
+            referencedRelation: "races"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "race_results_team_athlete_id_fkey"
+            columns: ["team_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "team_athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      races: {
+        Row: {
+          created_at: string
+          created_by: string
+          details: string | null
+          distance_id: string
+          id: string
+          location: string | null
+          map_link: string | null
+          name: string
+          race_date: string
+          results_link: string | null
+          season_id: string | null
+          team_id: string
+          transportation_info: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          details?: string | null
+          distance_id: string
+          id?: string
+          location?: string | null
+          map_link?: string | null
+          name: string
+          race_date: string
+          results_link?: string | null
+          season_id?: string | null
+          team_id: string
+          transportation_info?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          details?: string | null
+          distance_id?: string
+          id?: string
+          location?: string | null
+          map_link?: string | null
+          name?: string
+          race_date?: string
+          results_link?: string | null
+          season_id?: string | null
+          team_id?: string
+          transportation_info?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "races_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "races_distance_id_fkey"
+            columns: ["distance_id"]
+            isOneToOne: false
+            referencedRelation: "distances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "races_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
             referencedRelation: "seasons"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "prs_team_athlete_id_fkey"
-            columns: ["team_athlete_id"]
+            foreignKeyName: "races_team_id_fkey"
+            columns: ["team_id"]
             isOneToOne: false
-            referencedRelation: "team_athletes"
+            referencedRelation: "teams"
             referencedColumns: ["id"]
           },
         ]
@@ -390,38 +495,6 @@ export type Database = {
           },
           {
             foreignKeyName: "team_athletes_team_id_fkey"
-            columns: ["team_id"]
-            isOneToOne: false
-            referencedRelation: "teams"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      team_distances: {
-        Row: {
-          created_at: string
-          id: string
-          name: string
-          sort_order: number
-          team_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          name: string
-          sort_order?: number
-          team_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          name?: string
-          sort_order?: number
-          team_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "team_distances_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
