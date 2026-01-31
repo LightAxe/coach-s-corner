@@ -47,7 +47,6 @@ const workoutTypes = Constants.public.Enums.workout_type;
 const formSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   type: z.enum(workoutTypes as unknown as [string, ...string[]]),
-  distance: z.string().optional(),
   description: z.string().optional(),
   athlete_notes: z.string().optional(),
   scheduled_date: z.date(),
@@ -71,7 +70,6 @@ export function AddWorkoutDialog({ open, onOpenChange, initialDate }: AddWorkout
     defaultValues: {
       title: '',
       type: 'easy',
-      distance: '',
       description: '',
       athlete_notes: '',
       scheduled_date: initialDate || new Date(),
@@ -95,7 +93,6 @@ export function AddWorkoutDialog({ open, onOpenChange, initialDate }: AddWorkout
         created_by: user.id,
         title: values.title,
         type: values.type as WorkoutType,
-        distance: values.distance || null,
         description: values.description || null,
         athlete_notes: values.athlete_notes || null,
         scheduled_date: format(values.scheduled_date, 'yyyy-MM-dd'),
@@ -172,47 +169,30 @@ export function AddWorkoutDialog({ open, onOpenChange, initialDate }: AddWorkout
               )}
             />
 
-            <div className="grid grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="type"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Type</FormLabel>
-                    <Select onValueChange={field.onChange} defaultValue={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {workoutTypes.map((type) => (
-                          <SelectItem key={type} value={type} className="capitalize">
-                            {type}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="distance"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Distance</FormLabel>
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
-                      <Input placeholder="e.g., 6 miles" {...field} />
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
+                    <SelectContent>
+                      {workoutTypes.map((type) => (
+                        <SelectItem key={type} value={type} className="capitalize">
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="description"

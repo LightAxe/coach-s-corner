@@ -9,11 +9,12 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScheduledWorkoutsRange } from '@/hooks/useDashboardData';
 import { useRacesRange } from '@/hooks/useRaces';
-import { getWorkoutTypeBadgeClass, type RaceWithDistance } from '@/lib/types';
+import { getWorkoutTypeBadgeClass, type RaceWithDistance, type ScheduledWorkout } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { AddCalendarItemDialog } from '@/components/calendar/AddCalendarItemDialog';
 import { RaceCard } from '@/components/races/RaceCard';
 import { RaceDetailDialog } from '@/components/races/RaceDetailDialog';
+import { WorkoutLogDialog } from '@/components/workouts/WorkoutLogDialog';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -21,6 +22,8 @@ export default function Calendar() {
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [selectedRace, setSelectedRace] = useState<RaceWithDistance | null>(null);
   const [raceDetailOpen, setRaceDetailOpen] = useState(false);
+  const [selectedWorkout, setSelectedWorkout] = useState<ScheduledWorkout | null>(null);
+  const [workoutLogOpen, setWorkoutLogOpen] = useState(false);
   
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
@@ -72,6 +75,14 @@ export default function Calendar() {
   const handleRaceClick = (race: RaceWithDistance) => {
     setSelectedRace(race);
     setRaceDetailOpen(true);
+  };
+
+  const handleWorkoutClick = (workout: ScheduledWorkout) => {
+    // Athletes can log workouts, coaches just view them for now
+    if (!isCoach) {
+      setSelectedWorkout(workout);
+      setWorkoutLogOpen(true);
+    }
   };
 
   return (
@@ -157,7 +168,13 @@ export default function Calendar() {
                       <RaceCard race={race} compact />
                     </div>
                   ) : workout ? (
-                    <div className="space-y-2">
+                    <div 
+                      className={cn(
+                        "space-y-2",
+                        !isCoach && "cursor-pointer hover:opacity-80 transition-opacity"
+                      )}
+                      onClick={() => handleWorkoutClick(workout)}
+                    >
                       <Badge 
                         variant="outline" 
                         className={cn('capitalize text-xs', getWorkoutTypeBadgeClass(workout.type))}
@@ -165,8 +182,11 @@ export default function Calendar() {
                         {workout.type}
                       </Badge>
                       <h3 className="font-medium text-sm">{workout.title}</h3>
-                      {workout.distance && (
-                        <p className="text-xs text-muted-foreground">{workout.distance}</p>
+                      {workout.athlete_notes && (
+                        <p className="text-xs text-muted-foreground truncate">{workout.athlete_notes}</p>
+                      )}
+                      {!isCoach && (
+                        <p className="text-xs text-primary">Click to log</p>
                       )}
                     </div>
                   ) : isCoach ? (
@@ -232,6 +252,12 @@ export default function Calendar() {
           race={selectedRace}
           open={raceDetailOpen}
           onOpenChange={setRaceDetailOpen}
+        />
+
+        <WorkoutLogDialog
+          open={workoutLogOpen}
+          onOpenChange={setWorkoutLogOpen}
+          workout={selectedWorkout}
         />
       </div>
     </AppLayout>

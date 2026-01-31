@@ -330,7 +330,6 @@ export type Database = {
           created_at: string
           created_by: string
           description: string | null
-          distance: string | null
           id: string
           scheduled_date: string
           season_id: string | null
@@ -344,7 +343,6 @@ export type Database = {
           created_at?: string
           created_by: string
           description?: string | null
-          distance?: string | null
           id?: string
           scheduled_date: string
           season_id?: string | null
@@ -358,7 +356,6 @@ export type Database = {
           created_at?: string
           created_by?: string
           description?: string | null
-          distance?: string | null
           id?: string
           scheduled_date?: string
           season_id?: string | null
@@ -580,6 +577,8 @@ export type Database = {
             | Database["public"]["Enums"]["completion_status"]
             | null
           created_at: string
+          distance_unit: string | null
+          distance_value: number | null
           effort_level: number | null
           how_felt: string | null
           id: string
@@ -596,6 +595,8 @@ export type Database = {
             | Database["public"]["Enums"]["completion_status"]
             | null
           created_at?: string
+          distance_unit?: string | null
+          distance_value?: number | null
           effort_level?: number | null
           how_felt?: string | null
           id?: string
@@ -612,6 +613,8 @@ export type Database = {
             | Database["public"]["Enums"]["completion_status"]
             | null
           created_at?: string
+          distance_unit?: string | null
+          distance_value?: number | null
           effort_level?: number | null
           how_felt?: string | null
           id?: string
