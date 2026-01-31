@@ -540,6 +540,7 @@ export type Database = {
       }
       teams: {
         Row: {
+          coach_invite_code: string | null
           created_at: string
           created_by: string
           id: string
@@ -547,6 +548,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          coach_invite_code?: string | null
           created_at?: string
           created_by: string
           id?: string
@@ -554,6 +556,7 @@ export type Database = {
           name: string
         }
         Update: {
+          coach_invite_code?: string | null
           created_at?: string
           created_by?: string
           id?: string
@@ -717,6 +720,10 @@ export type Database = {
     Functions: {
       can_view_athlete: { Args: { _athlete_id: string }; Returns: boolean }
       cleanup_expired_otp_codes: { Args: never; Returns: undefined }
+      generate_coach_invite_code: {
+        Args: { _team_id: string }
+        Returns: string
+      }
       get_linked_athlete_ids: {
         Args: { _parent_id: string }
         Returns: string[]
@@ -736,6 +743,10 @@ export type Database = {
       is_team_member: {
         Args: { _profile_id: string; _team_id: string }
         Returns: boolean
+      }
+      regenerate_team_code: {
+        Args: { _code_type: string; _team_id: string }
+        Returns: string
       }
     }
     Enums: {

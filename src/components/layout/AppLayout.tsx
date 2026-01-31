@@ -6,6 +6,7 @@ import {
   Users, 
   Trophy,
   BookOpen,
+  Settings,
   Menu,
   X
 } from 'lucide-react';
@@ -35,6 +36,7 @@ const navigation: NavItem[] = [
   { name: 'Journal', href: '/journal', icon: BookOpen, athleteOnly: true },
   { name: 'Athletes', href: '/athletes', icon: Users, coachOnly: true },
   { name: 'Records', href: '/records', icon: Trophy, coachOnly: true },
+  { name: 'Team Settings', href: '/team-settings', icon: Settings, coachOnly: true },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
