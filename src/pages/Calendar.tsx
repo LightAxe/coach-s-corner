@@ -9,15 +9,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScheduledWorkoutsRange } from '@/hooks/useDashboardData';
 import { useRacesRange } from '@/hooks/useRaces';
-import { getWorkoutTypeBadgeClass } from '@/lib/types';
+import { getWorkoutTypeBadgeClass, type RaceWithDistance } from '@/lib/types';
 import { cn } from '@/lib/utils';
 import { AddCalendarItemDialog } from '@/components/calendar/AddCalendarItemDialog';
 import { RaceCard } from '@/components/races/RaceCard';
+import { RaceDetailDialog } from '@/components/races/RaceDetailDialog';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [addItemOpen, setAddItemOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  const [selectedRace, setSelectedRace] = useState<RaceWithDistance | null>(null);
+  const [raceDetailOpen, setRaceDetailOpen] = useState(false);
   
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
@@ -64,6 +67,11 @@ export default function Calendar() {
   const handleAddItem = (date?: Date) => {
     setSelectedDate(date || new Date());
     setAddItemOpen(true);
+  };
+
+  const handleRaceClick = (race: RaceWithDistance) => {
+    setSelectedRace(race);
+    setRaceDetailOpen(true);
   };
 
   return (
@@ -145,7 +153,9 @@ export default function Calendar() {
                       <Skeleton className="h-3 w-12" />
                     </div>
                   ) : race ? (
-                    <RaceCard race={race} compact />
+                    <div onClick={() => handleRaceClick(race)} className="cursor-pointer">
+                      <RaceCard race={race} compact />
+                    </div>
                   ) : workout ? (
                     <div className="space-y-2">
                       <Badge 
@@ -216,6 +226,12 @@ export default function Calendar() {
           open={addItemOpen} 
           onOpenChange={setAddItemOpen}
           initialDate={selectedDate}
+        />
+
+        <RaceDetailDialog
+          race={selectedRace}
+          open={raceDetailOpen}
+          onOpenChange={setRaceDetailOpen}
         />
       </div>
     </AppLayout>
