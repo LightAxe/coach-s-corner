@@ -1,299 +1,174 @@
 
-# Updated Plan: Cleanup and Unified Distances
+# Workout Tracking for Athletes
 
-## Summary of Changes
-
-Based on my code review, I'm adding the following cleanup tasks to the plan:
-
----
-
-## Part 1: Dead Code / Unused Database Objects
-
-### Tables to Drop
-
-| Table | Reason |
-|-------|--------|
-| `prs` | Being replaced by unified `race_results` table |
-| `team_distances` | Replaced by global `distances` table |
-
-### Files to Delete
-
-| File | Reason |
-|------|--------|
-| `src/lib/mock-data.ts` | Not imported anywhere - legacy mock data from before Supabase integration |
-| `src/pages/Workouts.tsx` | Removing Workouts feature per plan |
-| `src/hooks/usePRs.ts` | Will be replaced by new `useRecords.ts` hook |
-| `src/components/prs/AddPRDialog.tsx` | Will be replaced by new race results components |
-| `src/pages/PRBoard.tsx` | Will be rewritten as Records page |
-
-### Files to Refactor
-
-| File | Changes Needed |
-|------|----------------|
-| `src/hooks/useDistances.ts` | Complete rewrite - remove `team_distances` references, simplify to just fetch from global `distances` table |
-| `src/hooks/useDashboardData.ts` | Remove `useWorkoutTemplates` hook (lines 196-206) |
-| `src/lib/types.ts` | Remove `distanceLabels` (unused empty object), remove `PR` type, add new `Race`, `RaceResult`, `Distance` types |
-
-### Code to Remove
-
-| Location | What to Remove |
-|----------|----------------|
-| `src/hooks/useDistances.ts` | `PRESET_DISTANCES` constant, `useTeamDistances`, `useCreateDistance`, `useDeleteDistance`, `useInitializePresetDistances` - all reference `team_distances` |
-| `src/hooks/useDistances.ts` | `useDistancesWithPRs` - queries `prs` table which will be dropped |
-| `src/hooks/useScheduledWorkouts.ts` | `useScheduleFromTemplate` function (lines 63-80) - references templates |
-| `src/lib/types.ts` | `PR` type and `PRWithAthlete` type - will be replaced |
-| `src/lib/types.ts` | `distanceLabels` empty object - unused |
-
----
-
-## Part 2: Revised Data Model
-
-### Global `distances` Table (replaces `team_distances`)
-
-| Column | Type | Description |
-|--------|------|-------------|
-| id | uuid | Primary key |
-| name | text | Display name (unique) |
-| sort_order | integer | For consistent UI ordering |
-| created_at | timestamptz | Auto-generated |
-
-**Seed data:**
-```sql
-INSERT INTO distances (name, sort_order) VALUES
-  ('1500m', 0),
-  ('Mile', 1),
-  ('3000m', 2),
-  ('2 Mile', 3),
-  ('5K', 4);
-```
-
-**RLS:** Public read, no write via API (SQL-managed for MVP)
-
-### `races` Table
-Same as before but with `distance_id` FK:
-```sql
-CREATE TABLE races (
-  id UUID PRIMARY KEY,
-  team_id UUID NOT NULL REFERENCES teams(id),
-  season_id UUID REFERENCES seasons(id),
-  name TEXT NOT NULL,
-  race_date DATE NOT NULL,
-  distance_id UUID NOT NULL REFERENCES distances(id),
-  location TEXT,
-  details TEXT,
-  transportation_info TEXT,
-  map_link TEXT,
-  results_link TEXT,
-  created_by UUID NOT NULL REFERENCES profiles(id),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
-);
-```
-
-### `race_results` Table (unified)
-Same as before but with `distance_id` FK for offseason entries:
-```sql
-CREATE TABLE race_results (
-  id UUID PRIMARY KEY,
-  race_id UUID REFERENCES races(id) ON DELETE CASCADE,
-  team_athlete_id UUID NOT NULL REFERENCES team_athletes(id),
-  time_seconds NUMERIC(10,2) NOT NULL,
-  place INTEGER,
-  distance_id UUID REFERENCES distances(id),  -- for offseason entries
-  achieved_at DATE,  -- for offseason entries
-  notes TEXT,
-  created_by UUID NOT NULL REFERENCES profiles(id),
-  created_at TIMESTAMPTZ DEFAULT now(),
-  CONSTRAINT offseason_requires_distance_date 
-    CHECK (race_id IS NOT NULL OR (distance_id IS NOT NULL AND achieved_at IS NOT NULL))
-);
-```
-
----
-
-## Part 3: Full Database Migration
-
-```sql
--- 1. Create global distances table
-CREATE TABLE public.distances (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name TEXT NOT NULL UNIQUE,
-  sort_order INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
--- Seed distances
-INSERT INTO public.distances (name, sort_order) VALUES
-  ('1500m', 0),
-  ('Mile', 1),
-  ('3000m', 2),
-  ('2 Mile', 3),
-  ('5K', 4);
-
--- RLS: public read only
-ALTER TABLE public.distances ENABLE ROW LEVEL SECURITY;
-CREATE POLICY "Anyone can view distances"
-  ON public.distances FOR SELECT USING (true);
-
--- 2. Create races table
-CREATE TABLE public.races (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  team_id UUID NOT NULL REFERENCES public.teams(id) ON DELETE CASCADE,
-  season_id UUID REFERENCES public.seasons(id) ON DELETE SET NULL,
-  name TEXT NOT NULL,
-  race_date DATE NOT NULL,
-  distance_id UUID NOT NULL REFERENCES public.distances(id),
-  location TEXT,
-  details TEXT,
-  transportation_info TEXT,
-  map_link TEXT,
-  results_link TEXT,
-  created_by UUID NOT NULL REFERENCES public.profiles(id),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-
-ALTER TABLE public.races ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Team members can view races"
-  ON public.races FOR SELECT
-  USING (is_team_member(team_id, auth.uid()));
-
-CREATE POLICY "Coaches can create races"
-  ON public.races FOR INSERT
-  WITH CHECK (is_team_coach(team_id, auth.uid()));
-
-CREATE POLICY "Coaches can update races"
-  ON public.races FOR UPDATE
-  USING (is_team_coach(team_id, auth.uid()));
-
-CREATE POLICY "Coaches can delete races"
-  ON public.races FOR DELETE
-  USING (is_team_coach(team_id, auth.uid()));
-
--- 3. Create unified race_results table
-CREATE TABLE public.race_results (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  race_id UUID REFERENCES public.races(id) ON DELETE CASCADE,
-  team_athlete_id UUID NOT NULL REFERENCES public.team_athletes(id) ON DELETE CASCADE,
-  time_seconds NUMERIC(10,2) NOT NULL,
-  place INTEGER,
-  distance_id UUID REFERENCES public.distances(id),
-  achieved_at DATE,
-  notes TEXT,
-  created_by UUID NOT NULL REFERENCES public.profiles(id),
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  CONSTRAINT unique_race_athlete UNIQUE (race_id, team_athlete_id),
-  CONSTRAINT offseason_requires_distance_date 
-    CHECK (race_id IS NOT NULL OR (distance_id IS NOT NULL AND achieved_at IS NOT NULL))
-);
-
-ALTER TABLE public.race_results ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "View results for team athletes"
-  ON public.race_results FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM team_athletes ta
-    WHERE ta.id = team_athlete_id
-    AND is_team_member(ta.team_id, auth.uid())
-  ));
-
-CREATE POLICY "Coaches can insert results"
-  ON public.race_results FOR INSERT
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM team_athletes ta
-    WHERE ta.id = team_athlete_id
-    AND is_team_coach(ta.team_id, auth.uid())
-  ));
-
-CREATE POLICY "Coaches can update results"
-  ON public.race_results FOR UPDATE
-  USING (EXISTS (
-    SELECT 1 FROM team_athletes ta
-    WHERE ta.id = team_athlete_id
-    AND is_team_coach(ta.team_id, auth.uid())
-  ));
-
-CREATE POLICY "Coaches can delete results"
-  ON public.race_results FOR DELETE
-  USING (EXISTS (
-    SELECT 1 FROM team_athletes ta
-    WHERE ta.id = team_athlete_id
-    AND is_team_coach(ta.team_id, auth.uid())
-  ));
-
--- 4. Drop old tables
-DROP TABLE IF EXISTS public.prs;
-DROP TABLE IF EXISTS public.team_distances;
-```
-
----
-
-## Part 4: Files Summary
-
-### Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/hooks/useRaces.ts` | CRUD for races |
-| `src/hooks/useRaceResults.ts` | Enter/view race results |
-| `src/hooks/useRecords.ts` | Compute PRs and SRs from race_results |
-| `src/components/races/AddRaceDialog.tsx` | Create race form |
-| `src/components/races/RaceResultsForm.tsx` | Enter results for athletes |
-| `src/components/races/RaceCard.tsx` | Calendar display |
-| `src/components/records/AddOffseasonResultDialog.tsx` | Manual result entry |
-| `src/pages/Records.tsx` | Replaces PRBoard with unified view |
-| `src/pages/Races.tsx` | List of all races |
-
-### Files to Delete
-
-| File | Reason |
-|------|--------|
-| `src/lib/mock-data.ts` | Unused - no imports found |
-| `src/pages/Workouts.tsx` | Removing Workouts nav |
-| `src/hooks/usePRs.ts` | Replaced by useRecords.ts |
-| `src/components/prs/AddPRDialog.tsx` | Replaced by new components |
-| `src/pages/PRBoard.tsx` | Replaced by Records.tsx |
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/App.tsx` | Remove Workouts route, update /prs to /records |
-| `src/components/layout/AppLayout.tsx` | Remove Workouts nav, rename "PR Board" to "Records", add "Races" nav |
-| `src/components/calendar/AddWorkoutDialog.tsx` | Remove template tab entirely |
-| `src/pages/Calendar.tsx` | Add race type, display races |
-| `src/hooks/useDistances.ts` | Complete rewrite - just fetch from global `distances` table |
-| `src/hooks/useDashboardData.ts` | Remove useWorkoutTemplates if no longer needed |
-| `src/lib/types.ts` | Update types for new schema |
-
----
-
-## Part 5: Implementation Order
-
-1. **Database migration** - Create new tables, drop old ones
-2. **Delete dead code** - Remove unused files
-3. **Rewrite useDistances.ts** - Simple global distances fetch
-4. **Update navigation** - Remove Workouts, add Races, rename PRs to Records
-5. **Remove template tab** - Simplify AddWorkoutDialog
-6. **Create race hooks** - useRaces.ts, useRaceResults.ts
-7. **Create race components** - AddRaceDialog, RaceCard
-8. **Integrate races into calendar**
-9. **Create useRecords.ts** - Unified PR/SR logic
-10. **Create Records page** - Replace PRBoard
-11. **Add offseason result entry**
+This plan implements the core workout logging functionality that allows athletes to track their daily training, providing data for both personal training journals and coach analytics.
 
 ---
 
 ## Summary
 
-This cleanup removes:
-- 2 database tables (`prs`, `team_distances`)
-- 5+ files of dead/replaced code
-- Simplifies the data model with a single global `distances` table
-- Removes the unused template system from calendar
+Athletes will be able to log workouts from both the Dashboard and Calendar views, recording:
+- Completion status (none, partial, complete)
+- RPE (1-10 scale)
+- How they felt (quick-select options + custom text)
+- Distance run (miles or km)
+- Freeform notes
 
-And adds:
-- 1 new table (`distances`) with 5 preset values
-- 2 new tables (`races`, `race_results`) for the races feature
-- Unified PR/SR calculation from a single `race_results` table
+Coaches will have full visibility into all athlete logs and can log/edit on behalf of any athlete.
+
+---
+
+## Database Changes
+
+### 1. Add distance_value column to workout_logs
+
+The existing `workout_logs` table already has most fields needed. We need to add a column for athlete-logged distance:
+
+```sql
+ALTER TABLE public.workout_logs 
+ADD COLUMN distance_value NUMERIC(6,2),
+ADD COLUMN distance_unit TEXT DEFAULT 'miles' CHECK (distance_unit IN ('miles', 'km'));
+```
+
+### 2. Remove distance from scheduled_workouts
+
+Per your request, remove the distance field from workout creation (coaches specify distances in the description/athlete_notes fields instead):
+
+```sql
+ALTER TABLE public.scheduled_workouts DROP COLUMN IF EXISTS distance;
+```
+
+### 3. Update existing RLS policies
+
+The current `workout_logs` RLS policies already support:
+- Athletes logging their own workouts
+- Coaches logging for any team athlete
+
+No changes needed to RLS.
+
+---
+
+## UI Components to Build
+
+### 1. WorkoutLogDialog Component
+**Purpose**: Modal dialog for logging a workout
+
+**Fields**:
+- Completion status: Radio buttons (Did Not Complete / Partial / Complete)
+- RPE: Slider or number input (1-10)
+- How Felt: Quick-select chips (Great, Strong, Average, Tired, Weak) + optional text
+- Distance: Number input + unit toggle (mi/km)
+- Notes: Textarea for freeform notes
+
+**Behavior**:
+- Pre-populates if editing existing log
+- Shows workout details (title, type, date) at top
+- Submit creates or updates workout_log record
+
+### 2. Dashboard TodayWorkout Enhancement
+**Current**: Shows workout info only
+**Add**: "Log Workout" button for athletes that opens WorkoutLogDialog
+
+### 3. Calendar Workout Click Enhancement
+**Current**: Calendar shows workouts but no interaction for athletes
+**Add**: Clicking a workout day opens WorkoutLogDialog for that workout
+
+### 4. Athlete Training Journal View
+**New component**: Display athlete's logged workouts in a list/timeline format
+- Shows date, workout type, completion status, RPE, distance
+- Expandable to see full notes
+- Filterable by date range
+
+---
+
+## Hooks to Create
+
+### useWorkoutLogs Hook
+```typescript
+// Fetch logs for a specific athlete
+useAthleteWorkoutLogs(profileId, dateRange?)
+
+// Fetch logs for a specific scheduled workout
+useWorkoutLogsForScheduledWorkout(scheduledWorkoutId)
+
+// Mutations
+useCreateWorkoutLog()
+useUpdateWorkoutLog()
+useDeleteWorkoutLog()
+```
+
+---
+
+## File Changes Overview
+
+### New Files
+| File | Purpose |
+|------|---------|
+| `src/components/workouts/WorkoutLogDialog.tsx` | Main logging modal |
+| `src/components/workouts/FeelingSelector.tsx` | How-felt quick-select chips |
+| `src/components/workouts/RPESlider.tsx` | RPE input with labels |
+| `src/hooks/useWorkoutLogs.ts` | Data fetching/mutations |
+
+### Modified Files
+| File | Changes |
+|------|---------|
+| `src/components/dashboard/TodayWorkout.tsx` | Add "Log Workout" button for athletes |
+| `src/pages/Calendar.tsx` | Add workout click handler for athletes |
+| `src/components/calendar/AddWorkoutDialog.tsx` | Remove distance field |
+| `src/pages/AthleteDetail.tsx` | Add workout history section (coach view) |
+
+---
+
+## User Experience Flow
+
+### Athlete Flow (Dashboard)
+1. Athlete sees today's workout on Dashboard
+2. Clicks "Log Workout" button
+3. Dialog opens with workout title/type displayed
+4. Athlete fills in: completion, RPE, how felt, distance, notes
+5. Clicks Save
+6. Toast confirms "Workout logged!"
+
+### Athlete Flow (Calendar)
+1. Athlete navigates to Calendar
+2. Clicks on any past or current workout
+3. Same dialog opens for that date
+4. Can edit if already logged, or create new log
+
+### Coach Flow
+1. Coach views any athlete's detail page
+2. Sees workout history with all logged data
+3. Can click to log/edit on behalf of athlete
+
+---
+
+## Technical Considerations
+
+### Feeling Options (Predefined)
+```typescript
+const FEELING_OPTIONS = [
+  { value: 'great', label: 'Great', emoji: '💪' },
+  { value: 'strong', label: 'Strong', emoji: '😊' },
+  { value: 'average', label: 'Average', emoji: '😐' },
+  { value: 'tired', label: 'Tired', emoji: '😓' },
+  { value: 'weak', label: 'Weak', emoji: '😫' },
+] as const;
+```
+
+The `how_felt` field will store either a predefined value OR custom text (freeform takes precedence if provided).
+
+### Distance Unit Conversion
+Store distance_value as-is with unit. For analytics, we can normalize to a single unit when aggregating.
+
+---
+
+## Future Analytics Foundation
+
+This logging data enables future features:
+- Weekly mileage totals
+- RPE trends over time
+- Completion rate tracking
+- Team-wide effort distribution
+- Individual athlete training load graphs
+
+These analytics features are not part of this implementation but the data structure supports them.
