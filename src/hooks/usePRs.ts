@@ -1,9 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { PRWithAthlete, DistanceType } from '@/lib/types';
+import type { PRWithAthlete } from '@/lib/types';
 
 // Fetch PRs for the team (all-time personal records)
-export function useTeamPRs(teamId: string | undefined, distanceFilter?: DistanceType) {
+export function useTeamPRs(teamId: string | undefined, distanceFilter?: string) {
   return useQuery({
     queryKey: ['team-prs', teamId, distanceFilter],
     queryFn: async () => {
@@ -47,7 +47,7 @@ export function useTeamPRs(teamId: string | undefined, distanceFilter?: Distance
 }
 
 // Fetch Season Records (PRs achieved during a specific season)
-export function useSeasonRecords(teamId: string | undefined, seasonId: string | undefined, distanceFilter?: DistanceType) {
+export function useSeasonRecords(teamId: string | undefined, seasonId: string | undefined, distanceFilter?: string) {
   return useQuery({
     queryKey: ['season-records', teamId, seasonId, distanceFilter],
     queryFn: async () => {
@@ -71,12 +71,58 @@ export function useSeasonRecords(teamId: string | undefined, seasonId: string | 
   });
 }
 
+// Fetch unique distances that have PRs for this team
+export function useDistancesWithPRs(teamId: string | undefined, seasonId?: string) {
+  return useQuery({
+    queryKey: ['distances-with-prs', teamId, seasonId],
+    queryFn: async () => {
+      if (!teamId) return [];
+      
+      // Get team athletes to filter PRs
+      const { data: teamAthletes, error: athleteError } = await supabase
+        .from('team_athletes')
+        .select('id, profile_id')
+        .eq('team_id', teamId);
+      
+      if (athleteError) throw athleteError;
+      
+      const teamAthleteIds = teamAthletes.map(a => a.id);
+      const profileIds = teamAthletes.map(a => a.profile_id).filter(Boolean) as string[];
+      
+      // Build PR query
+      let query = supabase
+        .from('prs')
+        .select('distance, profile_id, team_athlete_id');
+      
+      if (seasonId) {
+        query = query.eq('season_id', seasonId);
+      }
+      
+      const { data: prs, error: prError } = await query;
+      
+      if (prError) throw prError;
+      
+      // Filter to team's PRs
+      const teamPRs = prs.filter(pr => 
+        (pr.profile_id && profileIds.includes(pr.profile_id)) ||
+        (pr.team_athlete_id && teamAthleteIds.includes(pr.team_athlete_id))
+      );
+      
+      // Get unique distances
+      const uniqueDistances = [...new Set(teamPRs.map(pr => pr.distance))].filter(Boolean);
+      
+      return uniqueDistances.sort();
+    },
+    enabled: !!teamId,
+  });
+}
+
 // Get best time per athlete for a distance (for leaderboard)
-export function usePRLeaderboard(teamId: string | undefined, distance: DistanceType, seasonId?: string) {
+export function usePRLeaderboard(teamId: string | undefined, distance: string, seasonId?: string) {
   return useQuery({
     queryKey: ['pr-leaderboard', teamId, distance, seasonId],
     queryFn: async () => {
-      if (!teamId) return [];
+      if (!teamId || !distance) return [];
       
       // Get team athletes
       const { data: teamAthletes, error: athleteError } = await supabase
@@ -127,6 +173,6 @@ export function usePRLeaderboard(teamId: string | undefined, distance: DistanceT
       
       return Array.from(athleteBestTimes.values());
     },
-    enabled: !!teamId,
+    enabled: !!teamId && !!distance,
   });
 }

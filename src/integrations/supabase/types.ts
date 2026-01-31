@@ -160,7 +160,7 @@ export type Database = {
           achieved_at: string
           created_at: string
           custom_distance: string | null
-          distance: Database["public"]["Enums"]["distance_type"]
+          distance: string
           id: string
           notes: string | null
           profile_id: string | null
@@ -173,7 +173,7 @@ export type Database = {
           achieved_at: string
           created_at?: string
           custom_distance?: string | null
-          distance: Database["public"]["Enums"]["distance_type"]
+          distance: string
           id?: string
           notes?: string | null
           profile_id?: string | null
@@ -186,7 +186,7 @@ export type Database = {
           achieved_at?: string
           created_at?: string
           custom_distance?: string | null
-          distance?: Database["public"]["Enums"]["distance_type"]
+          distance?: string
           id?: string
           notes?: string | null
           profile_id?: string | null
@@ -390,6 +390,38 @@ export type Database = {
           },
           {
             foreignKeyName: "team_athletes_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      team_distances: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          sort_order: number
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          sort_order?: number
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          sort_order?: number
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "team_distances_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trophy, Medal, Calendar } from 'lucide-react';
+import { Trophy, Medal, Calendar, Plus } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { Navigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -16,29 +16,39 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveSeason } from '@/hooks/useSeasons';
-import { usePRLeaderboard } from '@/hooks/usePRs';
-import { formatTime, distanceLabels, type DistanceType } from '@/lib/types';
-import { Constants } from '@/integrations/supabase/types';
-
-const distanceTypes = Constants.public.Enums.distance_type.filter(d => d !== 'other');
+import { usePRLeaderboard, useDistancesWithPRs } from '@/hooks/usePRs';
+import { formatTime, getDistanceLabel } from '@/lib/types';
+import { AddPRDialog } from '@/components/prs/AddPRDialog';
 
 export default function PRBoard() {
   const { isCoach, currentTeam } = useAuth();
   const { data: activeSeason } = useActiveSeason(currentTeam?.id);
   
-  const [selectedDistance, setSelectedDistance] = useState<DistanceType>('5000m');
+  const [selectedDistance, setSelectedDistance] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'prs' | 'srs'>('prs');
+  const [addPROpen, setAddPROpen] = useState(false);
   
-  // Fetch leaderboard data
-  const { data: leaderboard = [], isLoading } = usePRLeaderboard(
+  // Fetch distances that have PRs recorded
+  const { data: distancesWithPRs = [], isLoading: distancesLoading } = useDistancesWithPRs(
     currentTeam?.id,
-    selectedDistance,
     viewMode === 'srs' ? activeSeason?.id : undefined
   );
+  
+  // Auto-select first distance when data loads
+  const activeDistance = selectedDistance || distancesWithPRs[0] || null;
+  
+  // Fetch leaderboard data
+  const { data: leaderboard = [], isLoading: leaderboardLoading } = usePRLeaderboard(
+    currentTeam?.id,
+    activeDistance || '',
+    viewMode === 'srs' ? activeSeason?.id : undefined
+  );
+  
+  const isLoading = distancesLoading || leaderboardLoading;
   
   // Redirect non-coaches
   if (!isCoach) {
@@ -46,7 +56,7 @@ export default function PRBoard() {
   }
 
   const getInitials = (firstName: string, lastName: string) => {
-    return `${firstName[0] || ''}${lastName[0] || ''}`;
+    return `${firstName?.[0] || ''}${lastName?.[0] || ''}`;
   };
 
   const getAthleteName = (pr: typeof leaderboard[0]) => {
@@ -87,14 +97,17 @@ export default function PRBoard() {
               {viewMode === 'prs' ? 'All-time personal records' : `Season records for ${activeSeason?.name || 'current season'}`}
             </p>
           </div>
-          <Button className="gap-2">
-            <Trophy className="h-4 w-4" />
+          <Button className="gap-2" onClick={() => setAddPROpen(true)}>
+            <Plus className="h-4 w-4" />
             Add PR
           </Button>
         </div>
 
         {/* View mode toggle */}
-        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'prs' | 'srs')}>
+        <Tabs value={viewMode} onValueChange={(v) => {
+          setViewMode(v as 'prs' | 'srs');
+          setSelectedDistance(null); // Reset selection when switching modes
+        }}>
           <TabsList>
             <TabsTrigger value="prs">Personal Records (All-Time)</TabsTrigger>
             <TabsTrigger value="srs" disabled={!activeSeason}>
@@ -103,30 +116,32 @@ export default function PRBoard() {
           </TabsList>
         </Tabs>
 
-        {/* Distance selector */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex gap-2 flex-wrap">
-              {distanceTypes.map((distance) => (
-                <Button
-                  key={distance}
-                  variant={selectedDistance === distance ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => setSelectedDistance(distance)}
-                >
-                  {distanceLabels[distance]}
-                </Button>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        {/* Distance selector - only show distances with PRs */}
+        {distancesWithPRs.length > 0 && (
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex gap-2 flex-wrap">
+                {distancesWithPRs.map((distance) => (
+                  <Button
+                    key={distance}
+                    variant={activeDistance === distance ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedDistance(distance)}
+                  >
+                    {getDistanceLabel(distance)}
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Leaderboard */}
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-accent" />
-              {distanceLabels[selectedDistance]} Leaderboard
+              {activeDistance ? `${getDistanceLabel(activeDistance)} Leaderboard` : 'Leaderboard'}
               {viewMode === 'srs' && activeSeason && (
                 <Badge variant="secondary" className="ml-2">
                   {activeSeason.name}
@@ -148,6 +163,17 @@ export default function PRBoard() {
                     <Skeleton className="h-6 w-16" />
                   </div>
                 ))}
+              </div>
+            ) : distancesWithPRs.length === 0 ? (
+              <div className="text-center py-12">
+                <Trophy className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
+                <p className="text-muted-foreground mb-4">
+                  No {viewMode === 'prs' ? 'personal records' : 'season records'} recorded yet
+                </p>
+                <Button variant="outline" onClick={() => setAddPROpen(true)}>
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add First PR
+                </Button>
               </div>
             ) : leaderboard.length > 0 ? (
               <Table>
@@ -209,13 +235,20 @@ export default function PRBoard() {
               <div className="text-center py-12">
                 <Trophy className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                 <p className="text-muted-foreground">
-                  No {viewMode === 'prs' ? 'personal records' : 'season records'} recorded for {distanceLabels[selectedDistance]} yet
+                  No records for {getDistanceLabel(activeDistance || '')} yet
                 </p>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+      
+      <AddPRDialog 
+        open={addPROpen} 
+        onOpenChange={setAddPROpen}
+        teamId={currentTeam?.id}
+        seasonId={activeSeason?.id}
+      />
     </AppLayout>
   );
 }

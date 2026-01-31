@@ -16,9 +16,8 @@ export type PR = Database['public']['Tables']['prs']['Row'];
 // Completion status for workout logs
 export type CompletionStatus = Database['public']['Enums']['completion_status'];
 
-// Distance type for PRs
-export type DistanceType = Database['public']['Enums']['distance_type'];
-
+// Distance is now a text field for flexibility
+export type DistanceType = string;
 // Team athlete with optional profile data
 export type TeamAthleteWithProfile = TeamAthlete & {
   profiles?: Profile | null;
@@ -73,13 +72,11 @@ export function parseTimeToSeconds(time: string): number {
   return parts[0] * 60 + parts[1];
 }
 
-// Distance type labels
-export const distanceLabels: Record<DistanceType, string> = {
-  '1600m': '1600m',
-  '3000m': '3000m',
-  '5000m': '5K',
-  '3200m': '3200m (2 Mile)',
-  'mile': 'Mile',
-  '2mile': '2 Mile',
-  'other': 'Other',
-};
+// Distance labels - now just returns the distance name as-is
+// since distances are user-defined text
+export const distanceLabels: Record<string, string> = {};
+
+// Helper to get display label for a distance (just returns the name)
+export function getDistanceLabel(distance: string): string {
+  return distance;
+}
