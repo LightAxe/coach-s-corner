@@ -1,4 +1,9 @@
 import { useState } from 'react';
+import { format } from 'date-fns';
+import { Calendar as CalendarIcon } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Dialog,
@@ -6,79 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { AddWorkoutDialog } from '@/components/calendar/AddWorkoutDialog';
-import { AddRaceDialog } from '@/components/races/AddRaceDialog';
-
-interface AddCalendarItemDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
-  initialDate?: Date;
-}
-
-export function AddCalendarItemDialog({ open, onOpenChange, initialDate }: AddCalendarItemDialogProps) {
-  const [tab, setTab] = useState<'workout' | 'race'>('workout');
-
-  // When the parent dialog closes, we close both inner dialogs
-  const handleClose = () => {
-    onOpenChange(false);
-  };
-
-  // Render the inner dialog based on tab selection
-  if (tab === 'workout') {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-lg">
-          <DialogHeader>
-            <DialogTitle>Add to Calendar</DialogTitle>
-          </DialogHeader>
-          <Tabs value={tab} onValueChange={(v) => setTab(v as 'workout' | 'race')}>
-            <TabsList className="grid w-full grid-cols-2">
-              <TabsTrigger value="workout">Workout</TabsTrigger>
-              <TabsTrigger value="race">Race</TabsTrigger>
-            </TabsList>
-            <TabsContent value="workout" className="mt-4">
-              <AddWorkoutDialogInner 
-                initialDate={initialDate} 
-                onSuccess={handleClose}
-                onCancel={handleClose}
-              />
-            </TabsContent>
-          </Tabs>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Add to Calendar</DialogTitle>
-        </DialogHeader>
-        <Tabs value={tab} onValueChange={(v) => setTab(v as 'workout' | 'race')}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="workout">Workout</TabsTrigger>
-            <TabsTrigger value="race">Race</TabsTrigger>
-          </TabsList>
-          <TabsContent value="race" className="mt-4">
-            <AddRaceDialogInner 
-              initialDate={initialDate} 
-              onSuccess={handleClose}
-              onCancel={handleClose}
-            />
-          </TabsContent>
-        </Tabs>
-      </DialogContent>
-    </Dialog>
-  );
-}
-
-// Inner workout form (without Dialog wrapper)
-import { format } from 'date-fns';
-import { Calendar as CalendarIcon } from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -115,6 +47,53 @@ import { Constants } from '@/integrations/supabase/types';
 
 const workoutTypes = Constants.public.Enums.workout_type;
 
+interface AddCalendarItemDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  initialDate?: Date;
+}
+
+export function AddCalendarItemDialog({ open, onOpenChange, initialDate }: AddCalendarItemDialogProps) {
+  const [tab, setTab] = useState<'workout' | 'race'>('workout');
+
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle>Add to Calendar</DialogTitle>
+        </DialogHeader>
+        <Tabs value={tab} onValueChange={(v) => setTab(v as 'workout' | 'race')}>
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="workout">Workout</TabsTrigger>
+            <TabsTrigger value="race">Race</TabsTrigger>
+          </TabsList>
+          <div className="mt-4">
+            {tab === 'workout' && (
+              <AddWorkoutForm 
+                initialDate={initialDate} 
+                onSuccess={handleClose}
+                onCancel={handleClose}
+              />
+            )}
+            {tab === 'race' && (
+              <AddRaceForm 
+                initialDate={initialDate} 
+                onSuccess={handleClose}
+                onCancel={handleClose}
+              />
+            )}
+          </div>
+        </Tabs>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+// Workout form schema
 const workoutSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   type: z.enum(workoutTypes as unknown as [string, ...string[]]),
@@ -124,7 +103,7 @@ const workoutSchema = z.object({
   scheduled_date: z.date(),
 });
 
-function AddWorkoutDialogInner({ 
+function AddWorkoutForm({ 
   initialDate, 
   onSuccess, 
   onCancel 
@@ -314,7 +293,7 @@ function AddWorkoutDialogInner({
   );
 }
 
-// Inner race form
+// Race form schema
 const raceSchema = z.object({
   name: z.string().min(1, 'Race name is required'),
   race_date: z.date(),
@@ -326,7 +305,7 @@ const raceSchema = z.object({
   results_link: z.string().url().optional().or(z.literal('')),
 });
 
-function AddRaceDialogInner({ 
+function AddRaceForm({ 
   initialDate, 
   onSuccess, 
   onCancel 
@@ -498,8 +477,8 @@ function AddRaceDialogInner({
               <FormLabel>Transportation Info</FormLabel>
               <FormControl>
                 <Textarea 
-                  placeholder="e.g., Bus leaves at 6:30 AM"
-                  className="min-h-[50px]"
+                  placeholder="e.g., Bus leaves at 7am from gym"
+                  className="min-h-[60px]"
                   {...field} 
                 />
               </FormControl>
@@ -507,6 +486,36 @@ function AddRaceDialogInner({
             </FormItem>
           )}
         />
+
+        <div className="grid grid-cols-2 gap-4">
+          <FormField
+            control={form.control}
+            name="map_link"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Course Map Link</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+
+          <FormField
+            control={form.control}
+            name="results_link"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Results Link</FormLabel>
+                <FormControl>
+                  <Input placeholder="https://..." {...field} />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+        </div>
 
         <div className="flex justify-end gap-2 pt-2">
           <Button type="button" variant="outline" onClick={onCancel}>
