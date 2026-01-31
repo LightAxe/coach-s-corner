@@ -4,6 +4,7 @@ import { TodayRace } from '@/components/dashboard/TodayRace';
 import { AnnouncementCard } from '@/components/dashboard/AnnouncementCard';
 import { WeekPreview } from '@/components/dashboard/WeekPreview';
 import { QuickStats } from '@/components/dashboard/QuickStats';
+import { RecentAthleteActivity } from '@/components/dashboard/RecentAthleteActivity';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   useTodayWorkout, 
@@ -11,11 +12,12 @@ import {
   useScheduledWorkouts, 
   useWeekRaces,
   useAnnouncements, 
-  useTeamStats 
+  useTeamStats,
+  useRecentAthleteActivity
 } from '@/hooks/useDashboardData';
 
 export default function Dashboard() {
-  const { currentTeam } = useAuth();
+  const { currentTeam, isCoach } = useAuth();
   const teamId = currentTeam?.id;
 
   const { data: todayWorkout, isLoading: todayLoading } = useTodayWorkout(teamId);
@@ -24,6 +26,10 @@ export default function Dashboard() {
   const { data: weekRaces = [], isLoading: weekRacesLoading } = useWeekRaces(teamId);
   const { data: announcements = [], isLoading: announcementsLoading } = useAnnouncements(teamId);
   const { data: stats, isLoading: statsLoading } = useTeamStats(teamId);
+  const { data: recentActivity = [], isLoading: activityLoading } = useRecentAthleteActivity(
+    isCoach ? teamId : undefined, 
+    10
+  );
 
   return (
     <AppLayout>
@@ -57,12 +63,18 @@ export default function Dashboard() {
           </div>
 
           {/* Right column */}
-          <div>
+          <div className="space-y-6">
             <WeekPreview 
               workouts={weekWorkouts} 
               races={weekRaces}
               isLoading={weekLoading || weekRacesLoading} 
             />
+            {isCoach && (
+              <RecentAthleteActivity 
+                activities={recentActivity} 
+                isLoading={activityLoading} 
+              />
+            )}
           </div>
         </div>
       </div>

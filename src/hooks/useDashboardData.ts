@@ -1,7 +1,16 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { startOfWeek, endOfWeek, format } from 'date-fns';
-import type { ScheduledWorkout, Announcement, TeamMemberWithProfile, RaceWithDistance } from '@/lib/types';
+import type { ScheduledWorkout, Announcement, TeamMemberWithProfile, RaceWithDistance, formatTime } from '@/lib/types';
+
+export interface AthleteActivity {
+  id: string;
+  type: 'workout' | 'race';
+  athleteName: string;
+  title: string;
+  date: string;
+  details?: string;
+}
 
 // Fetch scheduled workouts for the current week
 export function useScheduledWorkouts(teamId: string | undefined) {
@@ -231,6 +240,114 @@ export function useTeamMembers(teamId: string | undefined) {
       
       if (error) throw error;
       return data as TeamMemberWithProfile[];
+    },
+    enabled: !!teamId,
+  });
+}
+
+// Fetch recent athlete activities (workout logs + race results)
+export function useRecentAthleteActivity(teamId: string | undefined, limit = 10) {
+  return useQuery({
+    queryKey: ['recent-athlete-activity', teamId, limit],
+    queryFn: async (): Promise<AthleteActivity[]> => {
+      if (!teamId) return [];
+      
+      // Fetch recent workout logs for team athletes
+      const { data: workoutLogs, error: logsError } = await supabase
+        .from('workout_logs')
+        .select(`
+          id,
+          created_at,
+          completion_status,
+          team_athlete_id,
+          scheduled_workouts!inner (
+            title,
+            team_id
+          ),
+          team_athletes!inner (
+            first_name,
+            last_name,
+            team_id
+          )
+        `)
+        .eq('team_athletes.team_id', teamId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (logsError) throw logsError;
+      
+      // Fetch recent race results for team athletes
+      const { data: raceResults, error: resultsError } = await supabase
+        .from('race_results')
+        .select(`
+          id,
+          created_at,
+          time_seconds,
+          place,
+          team_athlete_id,
+          races (
+            name,
+            team_id
+          ),
+          team_athletes!inner (
+            first_name,
+            last_name,
+            team_id
+          )
+        `)
+        .eq('team_athletes.team_id', teamId)
+        .order('created_at', { ascending: false })
+        .limit(limit);
+      
+      if (resultsError) throw resultsError;
+      
+      // Combine and sort activities
+      const activities: AthleteActivity[] = [];
+      
+      // Add workout logs
+      if (workoutLogs) {
+        for (const log of workoutLogs) {
+          const athlete = log.team_athletes as { first_name: string; last_name: string } | null;
+          const workout = log.scheduled_workouts as { title: string } | null;
+          
+          if (athlete && workout) {
+            activities.push({
+              id: log.id,
+              type: 'workout',
+              athleteName: `${athlete.first_name} ${athlete.last_name}`,
+              title: workout.title,
+              date: log.created_at,
+              details: log.completion_status === 'complete' ? 'Completed' : 
+                       log.completion_status === 'partial' ? 'Partial' : undefined,
+            });
+          }
+        }
+      }
+      
+      // Add race results
+      if (raceResults) {
+        for (const result of raceResults) {
+          const athlete = result.team_athletes as { first_name: string; last_name: string } | null;
+          const race = result.races as { name: string } | null;
+          
+          if (athlete && race) {
+            const { formatTime } = await import('@/lib/types');
+            activities.push({
+              id: result.id,
+              type: 'race',
+              athleteName: `${athlete.first_name} ${athlete.last_name}`,
+              title: race.name,
+              date: result.created_at,
+              details: result.place ? `#${result.place} • ${formatTime(result.time_seconds)}` : formatTime(result.time_seconds),
+            });
+          }
+        }
+      }
+      
+      // Sort by date descending and limit
+      return activities
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .slice(0, limit);
     },
     enabled: !!teamId,
   });
