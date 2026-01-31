@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card, CardContent } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeamAthletes } from '@/hooks/useTeamAthletes';
 import { useActiveSeason } from '@/hooks/useSeasons';
+import { useDistances } from '@/hooks/useDistances';
 import { useRaceResults, useCreateRaceResults, useUpdateRaceResult, useDeleteRaceResult } from '@/hooks/useRaceResults';
 import { parseTimeToSeconds, formatTime } from '@/lib/types';
 import { toast } from 'sonner';
@@ -16,20 +17,23 @@ interface AthleteResult {
   athleteName: string;
   time: string;
   place: string;
+  distanceId: string;
   existingResultId?: string;
 }
 
 interface RaceResultsFormProps {
   raceId: string;
   teamId: string;
+  defaultDistanceId: string;
   onSaved?: () => void;
 }
 
-export function RaceResultsForm({ raceId, teamId, onSaved }: RaceResultsFormProps) {
+export function RaceResultsForm({ raceId, teamId, defaultDistanceId, onSaved }: RaceResultsFormProps) {
   const { user, isCoach } = useAuth();
   const { data: activeSeason } = useActiveSeason(teamId);
-  const { data: athletes = [] } = useTeamAthletes(teamId, activeSeason?.id);
-  const { data: existingResults = [], isLoading } = useRaceResults(raceId);
+  const { data: athletes = [], isLoading: athletesLoading } = useTeamAthletes(teamId, activeSeason?.id);
+  const { data: distances = [] } = useDistances();
+  const { data: existingResults = [], isLoading: resultsLoading } = useRaceResults(raceId);
   const createResults = useCreateRaceResults();
   const updateResult = useUpdateRaceResult();
   const deleteResult = useDeleteRaceResult();
@@ -49,14 +53,15 @@ export function RaceResultsForm({ raceId, teamId, onSaved }: RaceResultsFormProp
           athleteName: `${athlete.first_name} ${athlete.last_name}`,
           time: existing ? formatTime(Number(existing.time_seconds)) : '',
           place: existing?.place?.toString() || '',
+          distanceId: existing?.distance_id || defaultDistanceId,
           existingResultId: existing?.id,
         };
       });
       setResults(athleteResults);
     }
-  }, [athletes, existingResults]);
+  }, [athletes, existingResults, defaultDistanceId]);
 
-  const updateAthleteResult = (athleteId: string, field: 'time' | 'place', value: string) => {
+  const updateAthleteResult = (athleteId: string, field: 'time' | 'place' | 'distanceId', value: string) => {
     setResults(prev =>
       prev.map(r =>
         r.athleteId === athleteId ? { ...r, [field]: value } : r
@@ -73,7 +78,7 @@ export function RaceResultsForm({ raceId, teamId, onSaved }: RaceResultsFormProp
       const toUpdate: any[] = [];
 
       for (const result of results) {
-        if (!result.time) continue; // Skip empty entries
+        if (!result.time) continue;
 
         const timeSeconds = parseTimeToSeconds(result.time);
         if (isNaN(timeSeconds) || timeSeconds <= 0) {
@@ -85,30 +90,28 @@ export function RaceResultsForm({ raceId, teamId, onSaved }: RaceResultsFormProp
         const place = result.place ? parseInt(result.place) : undefined;
 
         if (result.existingResultId) {
-          // Update existing
           toUpdate.push({
             id: result.existingResultId,
             time_seconds: timeSeconds,
             place,
+            distance_id: result.distanceId,
           });
         } else {
-          // Create new
           toCreate.push({
             race_id: raceId,
             team_athlete_id: result.athleteId,
             time_seconds: timeSeconds,
             place,
+            distance_id: result.distanceId,
             created_by: user.id,
           });
         }
       }
 
-      // Execute updates
       for (const update of toUpdate) {
         await updateResult.mutateAsync(update);
       }
 
-      // Batch create new results
       if (toCreate.length > 0) {
         await createResults.mutateAsync(toCreate);
       }
@@ -138,8 +141,10 @@ export function RaceResultsForm({ raceId, teamId, onSaved }: RaceResultsFormProp
     }
   };
 
+  const isLoading = athletesLoading || resultsLoading;
+
   if (isLoading) {
-    return <p className="text-muted-foreground text-center py-4">Loading results...</p>;
+    return <p className="text-muted-foreground text-center py-4">Loading...</p>;
   }
 
   if (athletes.length === 0) {
@@ -152,8 +157,9 @@ export function RaceResultsForm({ raceId, teamId, onSaved }: RaceResultsFormProp
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-[1fr_120px_80px_40px] gap-2 px-2 text-sm font-medium text-muted-foreground">
+      <div className="grid grid-cols-[1fr_100px_100px_60px_40px] gap-2 px-2 text-xs font-medium text-muted-foreground">
         <span>Athlete</span>
+        <span>Distance</span>
         <span>Time</span>
         <span>Place</span>
         <span></span>
@@ -163,16 +169,30 @@ export function RaceResultsForm({ raceId, teamId, onSaved }: RaceResultsFormProp
         {results.map(result => (
           <Card key={result.athleteId} className="bg-muted/30">
             <CardContent className="p-2">
-              <div className="grid grid-cols-[1fr_120px_80px_40px] gap-2 items-center">
+              <div className="grid grid-cols-[1fr_100px_100px_60px_40px] gap-2 items-center">
                 <div className="flex items-center gap-2 truncate">
                   <UserCircle className="h-4 w-4 text-muted-foreground shrink-0" />
                   <span className="truncate text-sm">{result.athleteName}</span>
                 </div>
+                <Select
+                  value={result.distanceId}
+                  onValueChange={v => updateAthleteResult(result.athleteId, 'distanceId', v)}
+                  disabled={!isCoach}
+                >
+                  <SelectTrigger className="h-8 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {distances.map(d => (
+                      <SelectItem key={d.id} value={d.id}>{d.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <Input
                   value={result.time}
                   onChange={e => updateAthleteResult(result.athleteId, 'time', e.target.value)}
                   placeholder="MM:SS.cc"
-                  className="h-8 text-sm"
+                  className="h-8 text-xs"
                   disabled={!isCoach}
                 />
                 <Input
@@ -181,7 +201,7 @@ export function RaceResultsForm({ raceId, teamId, onSaved }: RaceResultsFormProp
                   placeholder="#"
                   type="number"
                   min="1"
-                  className="h-8 text-sm"
+                  className="h-8 text-xs"
                   disabled={!isCoach}
                 />
                 {isCoach && result.existingResultId && (
