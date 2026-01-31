@@ -23,7 +23,7 @@ export function useRaceResults(raceId: string | undefined) {
       
       const { data, error } = await supabase
         .from('race_results')
-        .select('*, team_athletes(*, profiles(*))')
+        .select('*, team_athletes!inner(id, first_name, last_name, profile_id)')
         .eq('race_id', raceId)
         .order('time_seconds');
       

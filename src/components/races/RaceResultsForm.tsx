@@ -40,10 +40,11 @@ export function RaceResultsForm({ raceId, teamId, defaultDistanceId, onSaved }: 
 
   const [results, setResults] = useState<AthleteResult[]>([]);
   const [saving, setSaving] = useState(false);
+  const [initialized, setInitialized] = useState(false);
 
-  // Initialize results from athletes and existing data
+  // Initialize results from athletes and existing data - only once when data loads
   useEffect(() => {
-    if (athletes.length > 0) {
+    if (athletes.length > 0 && !initialized) {
       const athleteResults: AthleteResult[] = athletes.map(athlete => {
         const existing = existingResults.find(
           (r: any) => r.team_athlete_id === athlete.id
@@ -58,8 +59,9 @@ export function RaceResultsForm({ raceId, teamId, defaultDistanceId, onSaved }: 
         };
       });
       setResults(athleteResults);
+      setInitialized(true);
     }
-  }, [athletes, existingResults, defaultDistanceId]);
+  }, [athletes, existingResults, defaultDistanceId, initialized]);
 
   const updateAthleteResult = (athleteId: string, field: 'time' | 'place' | 'distanceId', value: string) => {
     setResults(prev =>
