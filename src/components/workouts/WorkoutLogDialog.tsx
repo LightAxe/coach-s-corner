@@ -26,7 +26,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
-  useWorkoutLogForProfile, 
+  useWorkoutLogForProfile,
+  useWorkoutLogForTeamAthlete,
   useCreateWorkoutLog, 
   useUpdateWorkoutLog 
 } from '@/hooks/useWorkoutLogs';
@@ -52,14 +53,36 @@ interface WorkoutLogDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   workout: ScheduledWorkout | null;
+  /** For coach logging on behalf of a team athlete */
+  teamAthleteId?: string;
+  /** Display name when logging for an athlete */
+  athleteName?: string;
 }
 
-export function WorkoutLogDialog({ open, onOpenChange, workout }: WorkoutLogDialogProps) {
+export function WorkoutLogDialog({ 
+  open, 
+  onOpenChange, 
+  workout, 
+  teamAthleteId,
+  athleteName 
+}: WorkoutLogDialogProps) {
   const { user } = useAuth();
-  const { data: existingLog, isLoading } = useWorkoutLogForProfile(
-    workout?.id,
-    user?.id
+  
+  // Use team athlete log or profile log based on context
+  const isTeamAthleteLog = !!teamAthleteId;
+  
+  const { data: profileLog, isLoading: profileLogLoading } = useWorkoutLogForProfile(
+    !isTeamAthleteLog ? workout?.id : undefined,
+    !isTeamAthleteLog ? user?.id : undefined
   );
+  
+  const { data: teamAthleteLog, isLoading: teamAthleteLogLoading } = useWorkoutLogForTeamAthlete(
+    isTeamAthleteLog ? workout?.id : undefined,
+    isTeamAthleteLog ? teamAthleteId : undefined
+  );
+  
+  const existingLog = isTeamAthleteLog ? teamAthleteLog : profileLog;
+  const isLoading = isTeamAthleteLog ? teamAthleteLogLoading : profileLogLoading;
   
   const createLog = useCreateWorkoutLog();
   const updateLog = useUpdateWorkoutLog();
@@ -122,7 +145,8 @@ export function WorkoutLogDialog({ open, onOpenChange, workout }: WorkoutLogDial
       } else {
         await createLog.mutateAsync({
           scheduled_workout_id: workout.id,
-          profile_id: user.id,
+          profile_id: isTeamAthleteLog ? null : user.id,
+          team_athlete_id: isTeamAthleteLog ? teamAthleteId : null,
           logged_by: user.id,
           completed: values.completion_status !== 'none',
           completion_status: values.completion_status as CompletionStatus,
@@ -132,7 +156,7 @@ export function WorkoutLogDialog({ open, onOpenChange, workout }: WorkoutLogDial
           distance_unit: values.distance_unit,
           notes: values.notes || null,
         });
-        toast.success('Workout logged!');
+        toast.success(isTeamAthleteLog ? `Workout logged for ${athleteName}` : 'Workout logged!');
       }
       onOpenChange(false);
     } catch (error) {
@@ -151,6 +175,7 @@ export function WorkoutLogDialog({ open, onOpenChange, workout }: WorkoutLogDial
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Edit Workout Log' : 'Log Workout'}
+            {athleteName && <span className="text-muted-foreground font-normal"> for {athleteName}</span>}
           </DialogTitle>
         </DialogHeader>
 
