@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trophy } from 'lucide-react';
 import { format, startOfWeek, addDays, isSameDay, parseISO, addWeeks, subWeeks } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -8,25 +8,33 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useScheduledWorkoutsRange } from '@/hooks/useDashboardData';
+import { useRacesRange } from '@/hooks/useRaces';
 import { getWorkoutTypeBadgeClass } from '@/lib/types';
 import { cn } from '@/lib/utils';
-import { AddWorkoutDialog } from '@/components/calendar/AddWorkoutDialog';
+import { AddCalendarItemDialog } from '@/components/calendar/AddCalendarItemDialog';
+import { RaceCard } from '@/components/races/RaceCard';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
+  const [addItemOpen, setAddItemOpen] = useState(false);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
   
   const { currentTeam, isCoach } = useAuth();
-  const { data: workouts = [], isLoading } = useScheduledWorkoutsRange(
+  const { data: workouts = [], isLoading: workoutsLoading } = useScheduledWorkoutsRange(
     currentTeam?.id, 
     weekStart, 
     weekEnd
   );
+  const { data: races = [], isLoading: racesLoading } = useRacesRange(
+    currentTeam?.id,
+    format(weekStart, 'yyyy-MM-dd'),
+    format(weekEnd, 'yyyy-MM-dd')
+  );
 
+  const isLoading = workoutsLoading || racesLoading;
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const goToPrevWeek = () => {
@@ -47,9 +55,15 @@ export default function Calendar() {
     );
   };
 
-  const handleAddWorkout = (date?: Date) => {
+  const getRaceForDay = (date: Date) => {
+    return races.find((r) =>
+      isSameDay(parseISO(r.race_date), date)
+    );
+  };
+
+  const handleAddItem = (date?: Date) => {
     setSelectedDate(date || new Date());
-    setAddWorkoutOpen(true);
+    setAddItemOpen(true);
   };
 
   return (
@@ -60,13 +74,13 @@ export default function Calendar() {
           <div>
             <h1 className="text-2xl font-heading font-bold">Training Calendar</h1>
             <p className="text-muted-foreground">
-              Plan and schedule your team's workouts
+              Plan workouts and races for your team
             </p>
           </div>
           {isCoach && (
-            <Button className="gap-2" onClick={() => handleAddWorkout()}>
+            <Button className="gap-2" onClick={() => handleAddItem()}>
               <Plus className="h-4 w-4" />
-              Add Workout
+              Add to Calendar
             </Button>
           )}
         </div>
@@ -93,14 +107,17 @@ export default function Calendar() {
         <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
           {weekDays.map((day) => {
             const workout = getWorkoutForDay(day);
+            const race = getRaceForDay(day);
             const isToday = isSameDay(day, new Date());
+            const hasItem = workout || race;
 
             return (
               <Card 
                 key={day.toISOString()} 
                 className={cn(
                   'min-h-[200px] transition-all',
-                  isToday && 'ring-2 ring-primary'
+                  isToday && 'ring-2 ring-primary',
+                  race && 'border-accent'
                 )}
               >
                 <CardContent className="p-4">
@@ -127,6 +144,8 @@ export default function Calendar() {
                       <Skeleton className="h-4 w-20" />
                       <Skeleton className="h-3 w-12" />
                     </div>
+                  ) : race ? (
+                    <RaceCard race={race} compact />
                   ) : workout ? (
                     <div className="space-y-2">
                       <Badge 
@@ -143,7 +162,7 @@ export default function Calendar() {
                   ) : isCoach ? (
                     <div 
                       className="flex items-center justify-center h-20 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors"
-                      onClick={() => handleAddWorkout(day)}
+                      onClick={() => handleAddItem(day)}
                     >
                       <Button variant="ghost" size="sm" className="text-muted-foreground">
                         <Plus className="h-4 w-4 mr-1" />
@@ -185,13 +204,17 @@ export default function Calendar() {
                 <div className="w-3 h-3 rounded-full bg-workout-rest" />
                 <span className="text-sm text-muted-foreground">Rest</span>
               </div>
+              <div className="flex items-center gap-2">
+                <Trophy className="w-3 h-3 text-accent" />
+                <span className="text-sm text-muted-foreground">Race</span>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <AddWorkoutDialog 
-          open={addWorkoutOpen} 
-          onOpenChange={setAddWorkoutOpen}
+        <AddCalendarItemDialog 
+          open={addItemOpen} 
+          onOpenChange={setAddItemOpen}
           initialDate={selectedDate}
         />
       </div>
