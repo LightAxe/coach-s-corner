@@ -7,7 +7,7 @@ interface CreateRaceData {
   season_id: string | null;
   name: string;
   race_date: string;
-  distance_id: string;
+  distance_id?: string;
   location?: string;
   details?: string;
   transportation_info?: string;
@@ -104,7 +104,7 @@ export function useCreateRace() {
           season_id: data.season_id,
           name: data.name,
           race_date: data.race_date,
-          distance_id: data.distance_id,
+          distance_id: data.distance_id || null,
           location: data.location || null,
           details: data.details || null,
           transportation_info: data.transportation_info || null,
@@ -112,7 +112,7 @@ export function useCreateRace() {
           results_link: data.results_link || null,
           created_by: data.created_by,
         })
-        .select('*, distances(*)')
+        .select()
         .single();
       
       if (error) throw error;

@@ -249,7 +249,7 @@ export type Database = {
           created_at: string
           created_by: string
           details: string | null
-          distance_id: string
+          distance_id: string | null
           id: string
           location: string | null
           map_link: string | null
@@ -265,7 +265,7 @@ export type Database = {
           created_at?: string
           created_by: string
           details?: string | null
-          distance_id: string
+          distance_id?: string | null
           id?: string
           location?: string | null
           map_link?: string | null
@@ -281,7 +281,7 @@ export type Database = {
           created_at?: string
           created_by?: string
           details?: string | null
-          distance_id?: string
+          distance_id?: string | null
           id?: string
           location?: string | null
           map_link?: string | null

@@ -31,9 +31,9 @@ export type TeamMemberWithProfile = TeamMembership & {
   profiles: Profile;
 };
 
-// Race with distance joined
+// Race with distance joined (distance may be null)
 export type RaceWithDistance = Race & {
-  distances: Distance;
+  distances?: Distance | null;
 };
 
 // Race result with optional relationships

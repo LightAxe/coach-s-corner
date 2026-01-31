@@ -18,7 +18,6 @@ export function RaceCard({ race, compact = false, onViewResults }: RaceCardProps
           Race
         </Badge>
         <h3 className="font-medium text-sm">{race.name}</h3>
-        <p className="text-xs text-muted-foreground">{race.distances.name}</p>
         {race.location && (
           <p className="text-xs text-muted-foreground flex items-center gap-1">
             <MapPin className="h-3 w-3" />
@@ -39,7 +38,6 @@ export function RaceCard({ race, compact = false, onViewResults }: RaceCardProps
           </Badge>
           <h3 className="font-semibold">{race.name}</h3>
         </div>
-        <Badge variant="outline">{race.distances.name}</Badge>
       </div>
 
       {race.location && (

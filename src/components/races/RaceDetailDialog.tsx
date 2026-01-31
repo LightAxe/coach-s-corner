@@ -2,11 +2,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Trophy, MapPin, Bus, ExternalLink, Calendar, Ruler, ClipboardList, Trash2 } from 'lucide-react';
+import { Trophy, MapPin, Bus, ExternalLink, Calendar, ClipboardList, Trash2 } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import { RaceResultsForm } from './RaceResultsForm';
 import { useAuth } from '@/contexts/AuthContext';
 import { useDeleteRace } from '@/hooks/useRaces';
+import { useDistances } from '@/hooks/useDistances';
 import { toast } from 'sonner';
 import type { RaceWithDistance } from '@/lib/types';
 
@@ -19,6 +20,10 @@ interface RaceDetailDialogProps {
 export function RaceDetailDialog({ race, open, onOpenChange }: RaceDetailDialogProps) {
   const { isCoach } = useAuth();
   const deleteRace = useDeleteRace();
+  const { data: distances = [] } = useDistances();
+
+  // Get the first distance as default for the results form
+  const defaultDistanceId = distances[0]?.id || '';
 
   if (!race) return null;
 
@@ -51,10 +56,6 @@ export function RaceDetailDialog({ race, open, onOpenChange }: RaceDetailDialogP
                 {format(parseISO(race.race_date), 'EEEE, MMMM d, yyyy')}
               </div>
             </div>
-            <Badge variant="secondary" className="shrink-0">
-              <Ruler className="h-3 w-3 mr-1" />
-              {race.distances.name}
-            </Badge>
           </div>
         </DialogHeader>
 
@@ -130,7 +131,7 @@ export function RaceDetailDialog({ race, open, onOpenChange }: RaceDetailDialogP
             <RaceResultsForm 
               raceId={race.id} 
               teamId={race.team_id}
-              defaultDistanceId={race.distance_id}
+              defaultDistanceId={defaultDistanceId}
               onSaved={() => {}}
             />
           </TabsContent>
