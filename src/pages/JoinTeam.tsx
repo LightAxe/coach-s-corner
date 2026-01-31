@@ -56,14 +56,43 @@ export default function JoinTeam() {
     if (!user || !profile) return;
 
     setIsLoading(true);
+    const codeUpper = data.joinCode.toUpperCase();
 
     try {
-      // Find team by join code
-      const { data: team, error: teamError } = await supabase
+      // First, try to find team by athlete join code
+      let { data: team, error: teamError } = await supabase
         .from('teams')
         .select('id, name')
-        .eq('join_code', data.joinCode.toUpperCase())
+        .eq('join_code', codeUpper)
         .maybeSingle();
+
+      let assignedRole: 'coach' | 'athlete' = 'athlete';
+
+      // If not found, try coach invite code
+      if (!team) {
+        const { data: coachTeam, error: coachError } = await supabase
+          .from('teams')
+          .select('id, name')
+          .eq('coach_invite_code', codeUpper)
+          .maybeSingle();
+
+        if (coachError) throw coachError;
+
+        if (coachTeam) {
+          // Verify user is actually a coach in their profile
+          if (profile.role !== 'coach') {
+            toast({
+              title: 'Invalid code',
+              description: 'This code is for coaches only. Please use the athlete join code.',
+              variant: 'destructive',
+            });
+            setIsLoading(false);
+            return;
+          }
+          team = coachTeam;
+          assignedRole = 'coach';
+        }
+      }
 
       if (teamError) throw teamError;
       if (!team) {
@@ -94,13 +123,13 @@ export default function JoinTeam() {
         return;
       }
 
-      // Join team (athletes get 'athlete' role in team_memberships)
+      // Join team with role determined by CODE TYPE, not profile role
       const { error: joinError } = await supabase
         .from('team_memberships')
         .insert({
           team_id: team.id,
           profile_id: user.id,
-          role: profile.role === 'coach' ? 'coach' : 'athlete',
+          role: assignedRole,
         });
 
       if (joinError) throw joinError;
@@ -108,14 +137,14 @@ export default function JoinTeam() {
       setJoinedTeam(team);
       await refreshProfile();
 
-      // If athlete, show link option
-      if (profile.role === 'athlete') {
+      // If joined as athlete, show link option
+      if (assignedRole === 'athlete') {
         setShowLinkOption(true);
       }
 
       toast({
         title: 'Joined team!',
-        description: `Welcome to ${team.name}!`,
+        description: `Welcome to ${team.name}!${assignedRole === 'coach' ? ' You have been added as a coach.' : ''}`,
       });
     } catch (error: any) {
       toast({

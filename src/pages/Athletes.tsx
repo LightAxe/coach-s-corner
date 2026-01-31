@@ -13,6 +13,7 @@ import { useTeamMembers } from '@/hooks/useDashboardData';
 import { useTeamAthletes } from '@/hooks/useTeamAthletes';
 import { useActiveSeason } from '@/hooks/useSeasons';
 import { AddAthleteDialog } from '@/components/athletes/AddAthleteDialog';
+import { PendingAccountsSection } from '@/components/athletes/PendingAccountsSection';
 
 export default function Athletes() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -74,6 +75,11 @@ export default function Athletes() {
             className="pl-9"
           />
         </div>
+
+        {/* Pending accounts section - athletes who signed up but aren't linked */}
+        {currentTeam && (
+          <PendingAccountsSection teamId={currentTeam.id} seasonId={activeSeason?.id} />
+        )}
 
         {/* Coaches section */}
         {(filteredCoaches.length > 0 || isLoading) && (
