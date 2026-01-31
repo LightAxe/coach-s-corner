@@ -5,6 +5,7 @@ import {
   Calendar, 
   Users, 
   Trophy,
+  BookOpen,
   Menu,
   X
 } from 'lucide-react';
@@ -25,11 +26,13 @@ interface NavItem {
   href: string;
   icon: typeof Home;
   coachOnly?: boolean;
+  athleteOnly?: boolean;
 }
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: Home },
   { name: 'Calendar', href: '/calendar', icon: Calendar },
+  { name: 'Journal', href: '/journal', icon: BookOpen, athleteOnly: true },
   { name: 'Athletes', href: '/athletes', icon: Users, coachOnly: true },
   { name: 'Records', href: '/records', icon: Trophy, coachOnly: true },
 ];
@@ -37,13 +40,15 @@ const navigation: NavItem[] = [
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isCoach, currentTeam } = useAuth();
+  const { isCoach, isAthlete, currentTeam } = useAuth();
   const { data: activeSeason } = useActiveSeason(currentTeam?.id);
 
   // Filter navigation based on role
-  const visibleNavigation = navigation.filter(
-    (item) => !item.coachOnly || isCoach
-  );
+  const visibleNavigation = navigation.filter((item) => {
+    if (item.coachOnly && !isCoach) return false;
+    if (item.athleteOnly && !isAthlete) return false;
+    return true;
+  });
 
   return (
     <div className="min-h-screen bg-background">
