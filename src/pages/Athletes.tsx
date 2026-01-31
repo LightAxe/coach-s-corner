@@ -11,13 +11,18 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTeamMembers } from '@/hooks/useDashboardData';
 import { useTeamAthletes } from '@/hooks/useTeamAthletes';
+import { useActiveSeason } from '@/hooks/useSeasons';
 import { AddAthleteDialog } from '@/components/athletes/AddAthleteDialog';
 
 export default function Athletes() {
   const [searchQuery, setSearchQuery] = useState('');
   const { currentTeam, isCoach } = useAuth();
+  const { data: activeSeason } = useActiveSeason(currentTeam?.id);
   const { data: members = [], isLoading: membersLoading } = useTeamMembers(currentTeam?.id);
-  const { data: teamAthletes = [], isLoading: athletesLoading } = useTeamAthletes(currentTeam?.id);
+  const { data: teamAthletes = [], isLoading: athletesLoading } = useTeamAthletes(
+    currentTeam?.id, 
+    activeSeason?.id
+  );
 
   // Redirect non-coaches
   if (!isCoach) {
@@ -51,10 +56,12 @@ export default function Athletes() {
           <div>
             <h1 className="text-2xl font-heading font-bold">Team Roster</h1>
             <p className="text-muted-foreground">
-              Manage your team members and athletes
+              {activeSeason ? `Athletes for ${activeSeason.name}` : 'Manage your team members and athletes'}
             </p>
           </div>
-          {currentTeam && <AddAthleteDialog teamId={currentTeam.id} />}
+          {currentTeam && (
+            <AddAthleteDialog teamId={currentTeam.id} seasonId={activeSeason?.id} />
+          )}
         </div>
 
         {/* Search */}
@@ -144,9 +151,13 @@ export default function Athletes() {
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <Users className="h-10 w-10 text-muted-foreground mb-3" />
                 <p className="text-muted-foreground text-center mb-4">
-                  No athletes on your team yet
+                  {activeSeason 
+                    ? `No athletes for ${activeSeason.name} yet` 
+                    : 'No athletes on your team yet. Create a season first.'}
                 </p>
-                {currentTeam && <AddAthleteDialog teamId={currentTeam.id} />}
+                {currentTeam && activeSeason && (
+                  <AddAthleteDialog teamId={currentTeam.id} seasonId={activeSeason.id} />
+                )}
               </CardContent>
             </Card>
           ) : (

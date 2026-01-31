@@ -13,7 +13,9 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { RoleSwitcher } from '@/components/RoleSwitcher';
+import { SeasonSelector } from '@/components/seasons/SeasonSelector';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveSeason } from '@/hooks/useSeasons';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -37,7 +39,8 @@ const navigation: NavItem[] = [
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isCoach } = useAuth();
+  const { isCoach, currentTeam } = useAuth();
+  const { data: activeSeason } = useActiveSeason(currentTeam?.id);
 
   // Filter navigation based on role
   const visibleNavigation = navigation.filter(
@@ -135,9 +138,9 @@ export function AppLayout({ children }: AppLayoutProps) {
 
           <div className="p-4 border-t border-border space-y-3">
             <RoleSwitcher />
-            <div className="bg-muted rounded-lg p-4">
-              <p className="text-xs font-medium text-muted-foreground mb-1">Current Season</p>
-              <p className="text-sm font-semibold">Fall 2024</p>
+            <div className="space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Current Season</p>
+              <SeasonSelector />
             </div>
           </div>
         </aside>

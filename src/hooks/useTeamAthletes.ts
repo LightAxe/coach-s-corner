@@ -2,12 +2,12 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import type { TeamAthlete, TeamAthleteWithProfile } from '@/lib/types';
 
-// Fetch all team athletes (shell + linked)
-export function useTeamAthletes(teamId: string | undefined) {
+// Fetch all team athletes (optionally filter by season)
+export function useTeamAthletes(teamId: string | undefined, seasonId?: string | null) {
   return useQuery({
-    queryKey: ['team-athletes', teamId],
+    queryKey: ['team-athletes', teamId, seasonId],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from('team_athletes')
         .select(`
           *,
@@ -22,6 +22,13 @@ export function useTeamAthletes(teamId: string | undefined) {
         `)
         .eq('team_id', teamId!)
         .order('last_name');
+      
+      // If season specified, filter by it
+      if (seasonId) {
+        query = query.eq('season_id', seasonId);
+      }
+      
+      const { data, error } = await query;
       if (error) throw error;
       return data as unknown as TeamAthleteWithProfile[];
     },
@@ -56,6 +63,7 @@ export function useCreateTeamAthlete() {
       first_name: string; 
       last_name: string;
       created_by: string;
+      season_id?: string | null;
     }) => {
       const { data: athlete, error } = await supabase
         .from('team_athletes')

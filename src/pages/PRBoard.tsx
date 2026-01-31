@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Table, 
   TableBody, 
@@ -15,38 +16,58 @@ import {
   TableHeader, 
   TableRow 
 } from '@/components/ui/table';
-import { athletes, raceDistances, RaceDistance } from '@/lib/mock-data';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveSeason } from '@/hooks/useSeasons';
+import { usePRLeaderboard } from '@/hooks/usePRs';
+import { formatTime, distanceLabels, type DistanceType } from '@/lib/types';
+import { Constants } from '@/integrations/supabase/types';
+
+const distanceTypes = Constants.public.Enums.distance_type.filter(d => d !== 'other');
 
 export default function PRBoard() {
-  const { isCoach } = useAuth();
-  const [selectedDistance, setSelectedDistance] = useState<RaceDistance>(raceDistances[1]); // 5K by default
-  const [genderFilter, setGenderFilter] = useState<'all' | 'M' | 'F'>('all');
+  const { isCoach, currentTeam } = useAuth();
+  const { data: activeSeason } = useActiveSeason(currentTeam?.id);
+  
+  const [selectedDistance, setSelectedDistance] = useState<DistanceType>('5000m');
+  const [viewMode, setViewMode] = useState<'prs' | 'srs'>('prs');
+  
+  // Fetch leaderboard data
+  const { data: leaderboard = [], isLoading } = usePRLeaderboard(
+    currentTeam?.id,
+    selectedDistance,
+    viewMode === 'srs' ? activeSeason?.id : undefined
+  );
   
   // Redirect non-coaches
   if (!isCoach) {
     return <Navigate to="/" replace />;
   }
 
-  const getInitials = (name: string) => {
-    return name.split(' ').map(n => n[0]).join('');
+  const getInitials = (firstName: string, lastName: string) => {
+    return `${firstName[0] || ''}${lastName[0] || ''}`;
   };
 
-  // Get all athletes with PRs for selected distance
-  const athletesWithPRs = athletes
-    .filter(a => genderFilter === 'all' || a.gender === genderFilter)
-    .map(athlete => {
-      const pr = athlete.prs.find(p => p.distanceId === selectedDistance.id);
-      return { ...athlete, pr };
-    })
-    .filter(a => a.pr)
-    .sort((a, b) => {
-      // Sort by time (convert MM:SS to seconds for comparison)
-      const timeA = a.pr!.time.split(':').reduce((acc, t, i) => acc + parseInt(t) * Math.pow(60, 1 - i), 0);
-      const timeB = b.pr!.time.split(':').reduce((acc, t, i) => acc + parseInt(t) * Math.pow(60, 1 - i), 0);
-      return timeA - timeB;
-    });
+  const getAthleteName = (pr: typeof leaderboard[0]) => {
+    if (pr.profiles) {
+      return `${pr.profiles.first_name} ${pr.profiles.last_name}`;
+    }
+    if (pr.team_athletes) {
+      return `${pr.team_athletes.first_name} ${pr.team_athletes.last_name}`;
+    }
+    return 'Unknown';
+  };
+
+  const getAthleteInitials = (pr: typeof leaderboard[0]) => {
+    if (pr.profiles) {
+      return getInitials(pr.profiles.first_name, pr.profiles.last_name);
+    }
+    if (pr.team_athletes) {
+      return getInitials(pr.team_athletes.first_name, pr.team_athletes.last_name);
+    }
+    return '??';
+  };
 
   const getMedalColor = (index: number) => {
     if (index === 0) return 'text-amber-500';
@@ -63,7 +84,7 @@ export default function PRBoard() {
           <div>
             <h1 className="text-2xl font-heading font-bold">PR Board</h1>
             <p className="text-muted-foreground">
-              Personal records and team rankings
+              {viewMode === 'prs' ? 'All-time personal records' : `Season records for ${activeSeason?.name || 'current season'}`}
             </p>
           </div>
           <Button className="gap-2">
@@ -72,45 +93,30 @@ export default function PRBoard() {
           </Button>
         </div>
 
+        {/* View mode toggle */}
+        <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as 'prs' | 'srs')}>
+          <TabsList>
+            <TabsTrigger value="prs">Personal Records (All-Time)</TabsTrigger>
+            <TabsTrigger value="srs" disabled={!activeSeason}>
+              Season Records {activeSeason ? `(${activeSeason.name})` : ''}
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+
         {/* Distance selector */}
         <Card>
           <CardContent className="p-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-              <div className="flex gap-2 flex-wrap">
-                {raceDistances.map((distance) => (
-                  <Button
-                    key={distance.id}
-                    variant={selectedDistance.id === distance.id ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedDistance(distance)}
-                  >
-                    {distance.name}
-                  </Button>
-                ))}
-              </div>
-              <div className="sm:ml-auto flex gap-2">
+            <div className="flex gap-2 flex-wrap">
+              {distanceTypes.map((distance) => (
                 <Button
-                  variant={genderFilter === 'all' ? 'secondary' : 'ghost'}
+                  key={distance}
+                  variant={selectedDistance === distance ? 'default' : 'outline'}
                   size="sm"
-                  onClick={() => setGenderFilter('all')}
+                  onClick={() => setSelectedDistance(distance)}
                 >
-                  All
+                  {distanceLabels[distance]}
                 </Button>
-                <Button
-                  variant={genderFilter === 'M' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setGenderFilter('M')}
-                >
-                  Boys
-                </Button>
-                <Button
-                  variant={genderFilter === 'F' ? 'secondary' : 'ghost'}
-                  size="sm"
-                  onClick={() => setGenderFilter('F')}
-                >
-                  Girls
-                </Button>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>
@@ -120,25 +126,42 @@ export default function PRBoard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-5 w-5 text-accent" />
-              {selectedDistance.name} Leaderboard
+              {distanceLabels[selectedDistance]} Leaderboard
+              {viewMode === 'srs' && activeSeason && (
+                <Badge variant="secondary" className="ml-2">
+                  {activeSeason.name}
+                </Badge>
+              )}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {athletesWithPRs.length > 0 ? (
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className="flex items-center gap-4">
+                    <Skeleton className="h-6 w-6" />
+                    <Skeleton className="h-10 w-10 rounded-full" />
+                    <div className="flex-1 space-y-2">
+                      <Skeleton className="h-4 w-32" />
+                      <Skeleton className="h-3 w-20" />
+                    </div>
+                    <Skeleton className="h-6 w-16" />
+                  </div>
+                ))}
+              </div>
+            ) : leaderboard.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-16">Rank</TableHead>
                     <TableHead>Athlete</TableHead>
-                    <TableHead>Grade</TableHead>
                     <TableHead>Time</TableHead>
-                    <TableHead className="hidden sm:table-cell">Race</TableHead>
                     <TableHead className="hidden sm:table-cell">Date</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {athletesWithPRs.map((athlete, index) => (
-                    <TableRow key={athlete.id}>
+                  {leaderboard.map((pr, index) => (
+                    <TableRow key={pr.id}>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {index < 3 ? (
@@ -154,40 +177,28 @@ export default function PRBoard() {
                         <div className="flex items-center gap-3">
                           <Avatar className="h-8 w-8">
                             <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                              {getInitials(athlete.name)}
+                              {getAthleteInitials(pr)}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium">{athlete.name}</p>
-                            <Badge 
-                              variant="outline" 
-                              className={cn(
-                                'text-xs sm:hidden',
-                                athlete.gender === 'M' ? 'border-info/30 text-info' : 'border-accent/50 text-accent'
-                              )}
-                            >
-                              {athlete.gender === 'M' ? 'Boys' : 'Girls'}
-                            </Badge>
+                            <p className="font-medium">{getAthleteName(pr)}</p>
+                            {!pr.profiles && pr.team_athletes && (
+                              <Badge variant="outline" className="text-xs">
+                                Not in app
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className="text-xs">
-                          {athlete.grade}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
                         <span className="font-mono font-semibold text-lg">
-                          {athlete.pr?.time}
+                          {formatTime(pr.time_seconds)}
                         </span>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell text-muted-foreground">
-                        {athlete.pr?.race || '—'}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-1.5 text-muted-foreground">
                           <Calendar className="h-3.5 w-3.5" />
-                          {athlete.pr?.date ? format(parseISO(athlete.pr.date), 'MMM d, yyyy') : '—'}
+                          {format(parseISO(pr.achieved_at), 'MMM d, yyyy')}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -198,7 +209,7 @@ export default function PRBoard() {
               <div className="text-center py-12">
                 <Trophy className="h-12 w-12 text-muted-foreground/50 mx-auto mb-4" />
                 <p className="text-muted-foreground">
-                  No PRs recorded for {selectedDistance.name} yet
+                  No {viewMode === 'prs' ? 'personal records' : 'season records'} recorded for {distanceLabels[selectedDistance]} yet
                 </p>
               </div>
             )}

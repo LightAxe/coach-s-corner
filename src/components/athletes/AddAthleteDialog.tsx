@@ -4,6 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveSeason } from '@/hooks/useSeasons';
 import { useCreateTeamAthlete } from '@/hooks/useTeamAthletes';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -35,11 +36,13 @@ type AddAthleteFormData = z.infer<typeof addAthleteSchema>;
 
 interface AddAthleteDialogProps {
   teamId: string;
+  seasonId?: string;
 }
 
-export function AddAthleteDialog({ teamId }: AddAthleteDialogProps) {
+export function AddAthleteDialog({ teamId, seasonId }: AddAthleteDialogProps) {
   const [open, setOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, currentTeam } = useAuth();
+  const { data: activeSeason } = useActiveSeason(currentTeam?.id);
   const { toast } = useToast();
   const createAthlete = useCreateTeamAthlete();
 
@@ -55,11 +58,14 @@ export function AddAthleteDialog({ teamId }: AddAthleteDialogProps) {
     if (!user) return;
 
     try {
+      const targetSeasonId = seasonId || activeSeason?.id;
+      
       await createAthlete.mutateAsync({
         team_id: teamId,
         first_name: data.firstName,
         last_name: data.lastName,
         created_by: user.id,
+        season_id: targetSeasonId,
       });
 
       toast({

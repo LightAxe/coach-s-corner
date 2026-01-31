@@ -163,7 +163,9 @@ export type Database = {
           distance: Database["public"]["Enums"]["distance_type"]
           id: string
           notes: string | null
-          profile_id: string
+          profile_id: string | null
+          season_id: string | null
+          team_athlete_id: string | null
           time_seconds: number
           updated_at: string
         }
@@ -174,7 +176,9 @@ export type Database = {
           distance: Database["public"]["Enums"]["distance_type"]
           id?: string
           notes?: string | null
-          profile_id: string
+          profile_id?: string | null
+          season_id?: string | null
+          team_athlete_id?: string | null
           time_seconds: number
           updated_at?: string
         }
@@ -185,7 +189,9 @@ export type Database = {
           distance?: Database["public"]["Enums"]["distance_type"]
           id?: string
           notes?: string | null
-          profile_id?: string
+          profile_id?: string | null
+          season_id?: string | null
+          team_athlete_id?: string | null
           time_seconds?: number
           updated_at?: string
         }
@@ -197,40 +203,60 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "prs_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prs_team_athlete_id_fkey"
+            columns: ["team_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "team_athletes"
+            referencedColumns: ["id"]
+          },
         ]
       }
       scheduled_workouts: {
         Row: {
+          athlete_notes: string | null
           created_at: string
           created_by: string
           description: string | null
           distance: string | null
           id: string
           scheduled_date: string
+          season_id: string | null
           team_id: string
           template_id: string | null
           title: string
           type: Database["public"]["Enums"]["workout_type"]
         }
         Insert: {
+          athlete_notes?: string | null
           created_at?: string
           created_by: string
           description?: string | null
           distance?: string | null
           id?: string
           scheduled_date: string
+          season_id?: string | null
           team_id: string
           template_id?: string | null
           title: string
           type?: Database["public"]["Enums"]["workout_type"]
         }
         Update: {
+          athlete_notes?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
           distance?: string | null
           id?: string
           scheduled_date?: string
+          season_id?: string | null
           team_id?: string
           template_id?: string | null
           title?: string
@@ -242,6 +268,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_workouts_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
             referencedColumns: ["id"]
           },
           {
@@ -260,6 +293,48 @@ export type Database = {
           },
         ]
       }
+      seasons: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          is_active: boolean
+          name: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          is_active?: boolean
+          name: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seasons_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasons_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       team_athletes: {
         Row: {
           created_at: string
@@ -268,6 +343,7 @@ export type Database = {
           id: string
           last_name: string
           profile_id: string | null
+          season_id: string | null
           team_id: string
         }
         Insert: {
@@ -277,6 +353,7 @@ export type Database = {
           id?: string
           last_name: string
           profile_id?: string | null
+          season_id?: string | null
           team_id: string
         }
         Update: {
@@ -286,6 +363,7 @@ export type Database = {
           id?: string
           last_name?: string
           profile_id?: string | null
+          season_id?: string | null
           team_id?: string
         }
         Relationships: [
@@ -301,6 +379,13 @@ export type Database = {
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_athletes_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
             referencedColumns: ["id"]
           },
           {
@@ -465,6 +550,7 @@ export type Database = {
       }
       workout_templates: {
         Row: {
+          athlete_notes: string | null
           created_at: string
           created_by: string
           description: string | null
@@ -476,6 +562,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          athlete_notes?: string | null
           created_at?: string
           created_by: string
           description?: string | null
@@ -487,6 +574,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          athlete_notes?: string | null
           created_at?: string
           created_by?: string
           description?: string | null
