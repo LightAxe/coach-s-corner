@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { startOfWeek, endOfWeek, format, isToday } from 'date-fns';
-import type { ScheduledWorkout, Announcement, WorkoutLog, TeamMemberWithProfile, WorkoutTemplate } from '@/lib/types';
+import { startOfWeek, endOfWeek, format } from 'date-fns';
+import type { ScheduledWorkout, Announcement, TeamMemberWithProfile, RaceWithDistance } from '@/lib/types';
 
 // Fetch scheduled workouts for the current week
 export function useScheduledWorkouts(teamId: string | undefined) {
@@ -72,6 +72,55 @@ export function useTodayWorkout(teamId: string | undefined) {
       
       if (error) throw error;
       return data as ScheduledWorkout | null;
+    },
+    enabled: !!teamId,
+  });
+}
+
+// Get today's race
+export function useTodayRace(teamId: string | undefined) {
+  const today = format(new Date(), 'yyyy-MM-dd');
+  
+  return useQuery({
+    queryKey: ['today-race', teamId, today],
+    queryFn: async () => {
+      if (!teamId) return null;
+      
+      const { data, error } = await supabase
+        .from('races')
+        .select('*, distances(*)')
+        .eq('team_id', teamId)
+        .eq('race_date', today)
+        .maybeSingle();
+      
+      if (error) throw error;
+      return data as RaceWithDistance | null;
+    },
+    enabled: !!teamId,
+  });
+}
+
+// Fetch races for current week
+export function useWeekRaces(teamId: string | undefined) {
+  return useQuery({
+    queryKey: ['week-races', teamId],
+    queryFn: async () => {
+      if (!teamId) return [];
+      
+      const now = new Date();
+      const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      
+      const { data, error } = await supabase
+        .from('races')
+        .select('*, distances(*)')
+        .eq('team_id', teamId)
+        .gte('race_date', weekStart)
+        .lte('race_date', weekEnd)
+        .order('race_date');
+      
+      if (error) throw error;
+      return data as RaceWithDistance[];
     },
     enabled: !!teamId,
   });

@@ -54,6 +54,37 @@ export function useAthleteResults(teamAthleteId: string | undefined) {
   });
 }
 
+// Fetch all results for a logged-in athlete by their profile_id
+export function useProfileRaceResults(profileId: string | undefined) {
+  return useQuery({
+    queryKey: ['profile-race-results', profileId],
+    queryFn: async () => {
+      if (!profileId) return [];
+      
+      // First find team_athlete records linked to this profile
+      const { data: teamAthletes, error: taError } = await supabase
+        .from('team_athletes')
+        .select('id')
+        .eq('profile_id', profileId);
+      
+      if (taError) throw taError;
+      if (!teamAthletes || teamAthletes.length === 0) return [];
+      
+      const teamAthleteIds = teamAthletes.map(ta => ta.id);
+      
+      const { data, error } = await supabase
+        .from('race_results')
+        .select('*, races(*, distances(*)), distances(*), team_athletes(id, first_name, last_name)')
+        .in('team_athlete_id', teamAthleteIds)
+        .order('achieved_at', { ascending: false });
+      
+      if (error) throw error;
+      return data as RaceResultWithRelations[];
+    },
+    enabled: !!profileId,
+  });
+}
+
 // Create a race result
 export function useCreateRaceResult() {
   const queryClient = useQueryClient();

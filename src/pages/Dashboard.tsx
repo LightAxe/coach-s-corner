@@ -1,12 +1,15 @@
 import { AppLayout } from '@/components/layout/AppLayout';
 import { TodayWorkout } from '@/components/dashboard/TodayWorkout';
+import { TodayRace } from '@/components/dashboard/TodayRace';
 import { AnnouncementCard } from '@/components/dashboard/AnnouncementCard';
 import { WeekPreview } from '@/components/dashboard/WeekPreview';
 import { QuickStats } from '@/components/dashboard/QuickStats';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   useTodayWorkout, 
+  useTodayRace,
   useScheduledWorkouts, 
+  useWeekRaces,
   useAnnouncements, 
   useTeamStats 
 } from '@/hooks/useDashboardData';
@@ -16,7 +19,9 @@ export default function Dashboard() {
   const teamId = currentTeam?.id;
 
   const { data: todayWorkout, isLoading: todayLoading } = useTodayWorkout(teamId);
+  const { data: todayRace, isLoading: raceLoading } = useTodayRace(teamId);
   const { data: weekWorkouts = [], isLoading: weekLoading } = useScheduledWorkouts(teamId);
+  const { data: weekRaces = [], isLoading: weekRacesLoading } = useWeekRaces(teamId);
   const { data: announcements = [], isLoading: announcementsLoading } = useAnnouncements(teamId);
   const { data: stats, isLoading: statsLoading } = useTeamStats(teamId);
 
@@ -43,13 +48,21 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Left column */}
           <div className="space-y-6">
-            <TodayWorkout workout={todayWorkout} isLoading={todayLoading} />
+            {todayRace ? (
+              <TodayRace race={todayRace} isLoading={raceLoading} />
+            ) : (
+              <TodayWorkout workout={todayWorkout} isLoading={todayLoading} />
+            )}
             <AnnouncementCard announcements={announcements} isLoading={announcementsLoading} />
           </div>
 
           {/* Right column */}
           <div>
-            <WeekPreview workouts={weekWorkouts} isLoading={weekLoading} />
+            <WeekPreview 
+              workouts={weekWorkouts} 
+              races={weekRaces}
+              isLoading={weekLoading || weekRacesLoading} 
+            />
           </div>
         </div>
       </div>

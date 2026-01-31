@@ -1,18 +1,23 @@
 import { Link } from 'react-router-dom';
-import { ChevronRight, Calendar } from 'lucide-react';
+import { ChevronRight, Calendar, Trophy } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import { format, parseISO, isToday } from 'date-fns';
-import { ScheduledWorkout, getWorkoutTypeBadgeClass } from '@/lib/types';
+import { ScheduledWorkout, RaceWithDistance, getWorkoutTypeBadgeClass } from '@/lib/types';
 
 interface WeekPreviewProps {
   workouts: ScheduledWorkout[];
+  races?: RaceWithDistance[];
   isLoading?: boolean;
 }
 
-export function WeekPreview({ workouts, isLoading }: WeekPreviewProps) {
+type CalendarItem = 
+  | { type: 'workout'; date: string; data: ScheduledWorkout }
+  | { type: 'race'; date: string; data: RaceWithDistance };
+
+export function WeekPreview({ workouts, races = [], isLoading }: WeekPreviewProps) {
   if (isLoading) {
     return (
       <Card>
@@ -43,9 +48,11 @@ export function WeekPreview({ workouts, isLoading }: WeekPreviewProps) {
     );
   }
 
-  const sortedWorkouts = [...workouts].sort((a, b) => 
-    new Date(a.scheduled_date).getTime() - new Date(b.scheduled_date).getTime()
-  );
+  // Combine workouts and races into a single sorted list
+  const calendarItems: CalendarItem[] = [
+    ...workouts.map((w) => ({ type: 'workout' as const, date: w.scheduled_date, data: w })),
+    ...races.map((r) => ({ type: 'race' as const, date: r.race_date, data: r })),
+  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   return (
     <Card>
@@ -62,26 +69,28 @@ export function WeekPreview({ workouts, isLoading }: WeekPreviewProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {sortedWorkouts.length === 0 ? (
+        {calendarItems.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center">
             <Calendar className="h-10 w-10 text-muted-foreground mb-3" />
-            <p className="text-muted-foreground mb-1">No workouts scheduled this week</p>
+            <p className="text-muted-foreground mb-1">No workouts or races scheduled this week</p>
             <Link to="/calendar" className="text-sm text-primary hover:underline">
               Schedule your first workout
             </Link>
           </div>
         ) : (
           <div className="space-y-2">
-            {sortedWorkouts.map((workout) => {
-              const date = parseISO(workout.scheduled_date);
+            {calendarItems.map((item) => {
+              const date = parseISO(item.date);
               const today = isToday(date);
+              const isRace = item.type === 'race';
               
               return (
                 <div
-                  key={workout.id}
+                  key={`${item.type}-${item.data.id}`}
                   className={cn(
                     'flex items-center gap-4 p-3 rounded-lg transition-colors',
-                    today ? 'bg-primary/5 border border-primary/20' : 'hover:bg-muted'
+                    today ? 'bg-primary/5 border border-primary/20' : 'hover:bg-muted',
+                    isRace && 'border-l-2 border-l-accent'
                   )}
                 >
                   <div className="text-center w-12 shrink-0">
@@ -96,17 +105,43 @@ export function WeekPreview({ workouts, isLoading }: WeekPreviewProps) {
                     </p>
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm truncate">{workout.title}</p>
-                    {workout.athlete_notes && (
-                      <p className="text-xs text-muted-foreground truncate">{workout.athlete_notes}</p>
+                    {isRace ? (
+                      <>
+                        <p className="font-medium text-sm truncate flex items-center gap-1">
+                          <Trophy className="h-3 w-3 text-accent" />
+                          {(item.data as RaceWithDistance).name}
+                        </p>
+                        {(item.data as RaceWithDistance).location && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {(item.data as RaceWithDistance).location}
+                          </p>
+                        )}
+                      </>
+                    ) : (
+                      <>
+                        <p className="font-medium text-sm truncate">
+                          {(item.data as ScheduledWorkout).title}
+                        </p>
+                        {(item.data as ScheduledWorkout).athlete_notes && (
+                          <p className="text-xs text-muted-foreground truncate">
+                            {(item.data as ScheduledWorkout).athlete_notes}
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
-                  <Badge 
-                    variant="outline" 
-                    className={cn('capitalize text-xs', getWorkoutTypeBadgeClass(workout.type))}
-                  >
-                    {workout.type}
-                  </Badge>
+                  {isRace ? (
+                    <Badge variant="outline" className="text-xs border-accent text-accent">
+                      Race
+                    </Badge>
+                  ) : (
+                    <Badge 
+                      variant="outline" 
+                      className={cn('capitalize text-xs', getWorkoutTypeBadgeClass((item.data as ScheduledWorkout).type))}
+                    >
+                      {(item.data as ScheduledWorkout).type}
+                    </Badge>
+                  )}
                 </div>
               );
             })}
