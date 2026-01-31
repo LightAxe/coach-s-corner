@@ -10,13 +10,17 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useScheduledWorkoutsRange } from '@/hooks/useDashboardData';
 import { getWorkoutTypeBadgeClass } from '@/lib/types';
 import { cn } from '@/lib/utils';
+import { AddWorkoutDialog } from '@/components/calendar/AddWorkoutDialog';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [addWorkoutOpen, setAddWorkoutOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
+  
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
   
-  const { currentTeam } = useAuth();
+  const { currentTeam, isCoach } = useAuth();
   const { data: workouts = [], isLoading } = useScheduledWorkoutsRange(
     currentTeam?.id, 
     weekStart, 
@@ -43,6 +47,11 @@ export default function Calendar() {
     );
   };
 
+  const handleAddWorkout = (date?: Date) => {
+    setSelectedDate(date || new Date());
+    setAddWorkoutOpen(true);
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6">
@@ -54,10 +63,12 @@ export default function Calendar() {
               Plan and schedule your team's workouts
             </p>
           </div>
-          <Button className="gap-2">
-            <Plus className="h-4 w-4" />
-            Add Workout
-          </Button>
+          {isCoach && (
+            <Button className="gap-2" onClick={() => handleAddWorkout()}>
+              <Plus className="h-4 w-4" />
+              Add Workout
+            </Button>
+          )}
         </div>
 
         {/* Calendar navigation */}
@@ -129,12 +140,19 @@ export default function Calendar() {
                         <p className="text-xs text-muted-foreground">{workout.distance}</p>
                       )}
                     </div>
-                  ) : (
-                    <div className="flex items-center justify-center h-20 border-2 border-dashed border-border rounded-lg">
+                  ) : isCoach ? (
+                    <div 
+                      className="flex items-center justify-center h-20 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors"
+                      onClick={() => handleAddWorkout(day)}
+                    >
                       <Button variant="ghost" size="sm" className="text-muted-foreground">
                         <Plus className="h-4 w-4 mr-1" />
                         Add
                       </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center h-20 text-muted-foreground text-sm">
+                      No workout
                     </div>
                   )}
                 </CardContent>
@@ -170,6 +188,12 @@ export default function Calendar() {
             </div>
           </CardContent>
         </Card>
+
+        <AddWorkoutDialog 
+          open={addWorkoutOpen} 
+          onOpenChange={setAddWorkoutOpen}
+          initialDate={selectedDate}
+        />
       </div>
     </AppLayout>
   );

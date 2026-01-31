@@ -10,9 +10,14 @@ export type WorkoutLog = Database['public']['Tables']['workout_logs']['Row'];
 export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type TeamMembership = Database['public']['Tables']['team_memberships']['Row'];
 export type TeamAthlete = Database['public']['Tables']['team_athletes']['Row'];
+export type Season = Database['public']['Tables']['seasons']['Row'];
+export type PR = Database['public']['Tables']['prs']['Row'];
 
 // Completion status for workout logs
 export type CompletionStatus = Database['public']['Enums']['completion_status'];
+
+// Distance type for PRs
+export type DistanceType = Database['public']['Enums']['distance_type'];
 
 // Team athlete with optional profile data
 export type TeamAthleteWithProfile = TeamAthlete & {
@@ -25,6 +30,12 @@ export type WorkoutType = Database['public']['Enums']['workout_type'];
 // Extended types with relationships
 export type TeamMemberWithProfile = TeamMembership & {
   profiles: Profile;
+};
+
+// PR with athlete info (for leaderboards)
+export type PRWithAthlete = PR & {
+  profiles?: Profile | null;
+  team_athletes?: TeamAthlete | null;
 };
 
 // Helper function for workout type badge styling
@@ -40,3 +51,35 @@ export function getWorkoutTypeBadgeClass(type: WorkoutType): string {
   };
   return classes[type] || classes.other;
 }
+
+// Format seconds to MM:SS or H:MM:SS
+export function formatTime(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const mins = Math.floor((seconds % 3600) / 60);
+  const secs = seconds % 60;
+  
+  if (hours > 0) {
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  }
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Parse MM:SS or H:MM:SS to seconds
+export function parseTimeToSeconds(time: string): number {
+  const parts = time.split(':').map(Number);
+  if (parts.length === 3) {
+    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+  }
+  return parts[0] * 60 + parts[1];
+}
+
+// Distance type labels
+export const distanceLabels: Record<DistanceType, string> = {
+  '1600m': '1600m',
+  '3000m': '3000m',
+  '5000m': '5K',
+  '3200m': '3200m (2 Mile)',
+  'mile': 'Mile',
+  '2mile': '2 Mile',
+  'other': 'Other',
+};
