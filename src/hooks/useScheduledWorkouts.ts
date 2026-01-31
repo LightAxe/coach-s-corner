@@ -14,13 +14,6 @@ interface CreateWorkoutData {
   season_id: string | null;
 }
 
-interface ScheduleFromTemplateData {
-  template_id: string;
-  team_id: string;
-  created_by: string;
-  scheduled_date: string;
-  season_id: string | null;
-}
 
 // Create a new scheduled workout (ad-hoc)
 export function useCreateScheduledWorkout() {
@@ -54,48 +47,7 @@ export function useCreateScheduledWorkout() {
   });
 }
 
-// Schedule a workout from a template
-export function useScheduleFromTemplate() {
-  const queryClient = useQueryClient();
-  
-  return useMutation({
-    mutationFn: async (data: ScheduleFromTemplateData) => {
-      // First fetch the template
-      const { data: template, error: templateError } = await supabase
-        .from('workout_templates')
-        .select('*')
-        .eq('id', data.template_id)
-        .single();
-      
-      if (templateError) throw templateError;
-      
-      // Create scheduled workout from template
-      const { data: workout, error } = await supabase
-        .from('scheduled_workouts')
-        .insert({
-          team_id: data.team_id,
-          created_by: data.created_by,
-          title: template.name,
-          type: template.type,
-          distance: template.distance,
-          description: template.description,
-          athlete_notes: template.athlete_notes,
-          scheduled_date: data.scheduled_date,
-          season_id: data.season_id,
-          template_id: data.template_id,
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      return workout;
-    },
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['scheduled-workouts', variables.team_id] });
-      queryClient.invalidateQueries({ queryKey: ['today-workout', variables.team_id] });
-    },
-  });
-}
+// Note: useScheduleFromTemplate removed - templates feature deprecated
 
 // Update a scheduled workout
 export function useUpdateScheduledWorkout() {

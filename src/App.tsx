@@ -13,10 +13,9 @@ import CreateTeam from "./pages/CreateTeam";
 import JoinTeam from "./pages/JoinTeam";
 import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
-import Workouts from "./pages/Workouts";
 import Athletes from "./pages/Athletes";
 import AthleteDetail from "./pages/AthleteDetail";
-import PRBoard from "./pages/PRBoard";
+import Records from "./pages/Records";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -58,11 +57,6 @@ const App = () => (
                   <Calendar />
                 </ProtectedRoute>
               } />
-              <Route path="/workouts" element={
-                <ProtectedRoute requireTeam>
-                  <Workouts />
-                </ProtectedRoute>
-              } />
               <Route path="/athletes" element={
                 <ProtectedRoute requireTeam>
                   <Athletes />
@@ -73,9 +67,9 @@ const App = () => (
                   <AthleteDetail />
                 </ProtectedRoute>
               } />
-              <Route path="/prs" element={
+              <Route path="/records" element={
                 <ProtectedRoute requireTeam>
-                  <PRBoard />
+                  <Records />
                 </ProtectedRoute>
               } />
               

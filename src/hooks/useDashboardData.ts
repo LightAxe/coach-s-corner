@@ -188,22 +188,4 @@ export function useTeamMembers(teamId: string | undefined) {
   });
 }
 
-// Fetch workout templates for a team
-export function useWorkoutTemplates(teamId: string | undefined) {
-  return useQuery({
-    queryKey: ['workout-templates', teamId],
-    queryFn: async () => {
-      if (!teamId) return [];
-      
-      const { data, error } = await supabase
-        .from('workout_templates')
-        .select('*')
-        .eq('team_id', teamId)
-        .order('created_at', { ascending: false });
-      
-      if (error) throw error;
-      return data as WorkoutTemplate[];
-    },
-    enabled: !!teamId,
-  });
-}
+// Note: useWorkoutTemplates removed - templates feature deprecated

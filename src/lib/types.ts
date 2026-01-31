@@ -11,13 +11,13 @@ export type Profile = Database['public']['Tables']['profiles']['Row'];
 export type TeamMembership = Database['public']['Tables']['team_memberships']['Row'];
 export type TeamAthlete = Database['public']['Tables']['team_athletes']['Row'];
 export type Season = Database['public']['Tables']['seasons']['Row'];
-export type PR = Database['public']['Tables']['prs']['Row'];
+export type Distance = Database['public']['Tables']['distances']['Row'];
+export type Race = Database['public']['Tables']['races']['Row'];
+export type RaceResult = Database['public']['Tables']['race_results']['Row'];
 
 // Completion status for workout logs
 export type CompletionStatus = Database['public']['Enums']['completion_status'];
 
-// Distance is now a text field for flexibility
-export type DistanceType = string;
 // Team athlete with optional profile data
 export type TeamAthleteWithProfile = TeamAthlete & {
   profiles?: Profile | null;
@@ -31,9 +31,15 @@ export type TeamMemberWithProfile = TeamMembership & {
   profiles: Profile;
 };
 
-// PR with athlete info (for leaderboards)
-export type PRWithAthlete = PR & {
-  profiles?: Profile | null;
+// Race with distance joined
+export type RaceWithDistance = Race & {
+  distances: Distance;
+};
+
+// Race result with optional relationships
+export type RaceResultWithRelations = RaceResult & {
+  distances?: Distance | null;
+  races?: RaceWithDistance | null;
   team_athletes?: TeamAthlete | null;
 };
 
@@ -51,32 +57,39 @@ export function getWorkoutTypeBadgeClass(type: WorkoutType): string {
   return classes[type] || classes.other;
 }
 
-// Format seconds to MM:SS or H:MM:SS
+// Format seconds to MM:SS.cc or H:MM:SS.cc (with centiseconds)
 export function formatTime(seconds: number): string {
-  const hours = Math.floor(seconds / 3600);
-  const mins = Math.floor((seconds % 3600) / 60);
-  const secs = seconds % 60;
+  const totalSeconds = Math.floor(seconds);
+  const centiseconds = Math.round((seconds - totalSeconds) * 100);
+  const hours = Math.floor(totalSeconds / 3600);
+  const mins = Math.floor((totalSeconds % 3600) / 60);
+  const secs = totalSeconds % 60;
+  
+  const centisStr = centiseconds.toString().padStart(2, '0');
   
   if (hours > 0) {
-    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    return `${hours}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}.${centisStr}`;
   }
-  return `${mins}:${secs.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, '0')}.${centisStr}`;
 }
 
-// Parse MM:SS or H:MM:SS to seconds
+// Parse MM:SS.cc or H:MM:SS.cc to decimal seconds
 export function parseTimeToSeconds(time: string): number {
-  const parts = time.split(':').map(Number);
+  const parts = time.split(':');
+  let seconds = 0;
+  
   if (parts.length === 3) {
-    return parts[0] * 3600 + parts[1] * 60 + parts[2];
+    // H:MM:SS or H:MM:SS.cc
+    seconds = parseFloat(parts[0]) * 3600 + parseFloat(parts[1]) * 60 + parseFloat(parts[2]);
+  } else if (parts.length === 2) {
+    // MM:SS or MM:SS.cc
+    seconds = parseFloat(parts[0]) * 60 + parseFloat(parts[1]);
   }
-  return parts[0] * 60 + parts[1];
+  
+  return Math.round(seconds * 100) / 100; // Round to 2 decimals
 }
 
-// Distance labels - now just returns the distance name as-is
-// since distances are user-defined text
-export const distanceLabels: Record<string, string> = {};
-
-// Helper to get display label for a distance (just returns the name)
-export function getDistanceLabel(distance: string): string {
-  return distance;
+// Helper to get display label for a distance
+export function getDistanceLabel(distance: Distance): string {
+  return distance.name;
 }
