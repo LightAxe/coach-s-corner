@@ -147,48 +147,110 @@ export type Database = {
       }
       parent_athlete_links: {
         Row: {
-          athlete_id: string
           created_at: string
           id: string
           parent_id: string
+          team_athlete_id: string
         }
         Insert: {
-          athlete_id: string
           created_at?: string
           id?: string
           parent_id: string
+          team_athlete_id: string
         }
         Update: {
-          athlete_id?: string
           created_at?: string
           id?: string
           parent_id?: string
+          team_athlete_id?: string
         }
         Relationships: [
           {
-            foreignKeyName: "parent_athlete_links_athlete_id_fkey"
-            columns: ["athlete_id"]
+            foreignKeyName: "parent_athlete_links_parent_id_fkey"
+            columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "parent_athlete_links_athlete_id_fkey"
-            columns: ["athlete_id"]
+            foreignKeyName: "parent_athlete_links_parent_id_fkey"
+            columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "parent_athlete_links_parent_id_fkey"
-            columns: ["parent_id"]
+            foreignKeyName: "parent_athlete_links_team_athlete_fkey"
+            columns: ["team_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "team_athletes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parent_link_codes: {
+        Row: {
+          code: string
+          created_at: string
+          created_by: string
+          expires_at: string
+          id: string
+          team_athlete_id: string
+          used_at: string | null
+          used_by: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          created_by: string
+          expires_at?: string
+          id?: string
+          team_athlete_id: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          created_by?: string
+          expires_at?: string
+          id?: string
+          team_athlete_id?: string
+          used_at?: string | null
+          used_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parent_link_codes_created_by_fkey"
+            columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
           {
-            foreignKeyName: "parent_athlete_links_parent_id_fkey"
-            columns: ["parent_id"]
+            foreignKeyName: "parent_link_codes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_link_codes_team_athlete_id_fkey"
+            columns: ["team_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "team_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_link_codes_used_by_fkey"
+            columns: ["used_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_link_codes_used_by_fkey"
+            columns: ["used_by"]
             isOneToOne: false
             referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
@@ -970,16 +1032,25 @@ export type Database = {
         Args: { _team_id: string }
         Returns: string
       }
+      generate_parent_link_code: {
+        Args: { _team_athlete_id: string }
+        Returns: string
+      }
       get_linked_athlete_ids: {
         Args: { _parent_id: string }
         Returns: string[]
       }
+      get_parent_team_ids: { Args: { _parent_id: string }; Returns: string[] }
       get_team_ids_for_profile: {
         Args: { _profile_id: string }
         Returns: string[]
       }
       is_parent_of_athlete: {
         Args: { _athlete_id: string; _parent_id: string }
+        Returns: boolean
+      }
+      is_parent_of_team_athlete: {
+        Args: { _parent_id: string; _team_athlete_id: string }
         Returns: boolean
       }
       is_team_coach: {
@@ -991,6 +1062,7 @@ export type Database = {
         Args: { _profile_id: string; _team_id: string }
         Returns: boolean
       }
+      redeem_parent_link_code: { Args: { _code: string }; Returns: string }
       regenerate_team_code: {
         Args: { _code_type: string; _team_id: string }
         Returns: string

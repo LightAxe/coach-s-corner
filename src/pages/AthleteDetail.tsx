@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Navigate, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, User, Calendar, ClipboardList, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, User, Calendar, ClipboardList, CheckCircle, Users } from 'lucide-react';
 import { format, parseISO, subDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,6 +13,7 @@ import { useTeamAthletes } from '@/hooks/useTeamAthletes';
 import { useScheduledWorkoutsRange } from '@/hooks/useDashboardData';
 import { useTeamAthleteWorkoutLogs } from '@/hooks/useWorkoutLogs';
 import { WorkoutLogDialog } from '@/components/workouts/WorkoutLogDialog';
+import { GenerateParentCodeDialog } from '@/components/athletes/GenerateParentCodeDialog';
 import { cn } from '@/lib/utils';
 import { getWorkoutTypeBadgeClass, type ScheduledWorkout } from '@/lib/types';
 
@@ -23,6 +24,7 @@ export default function AthleteDetail() {
   
   const [selectedWorkout, setSelectedWorkout] = useState<ScheduledWorkout | null>(null);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [parentCodeDialogOpen, setParentCodeDialogOpen] = useState(false);
 
   // Get recent workouts for the team (last 14 days)
   const { data: recentWorkouts = [], isLoading: workoutsLoading } = useScheduledWorkoutsRange(
@@ -117,6 +119,16 @@ export default function AthleteDetail() {
                   Added {format(new Date(athlete.created_at), 'MMM d, yyyy')}
                 </p>
               </div>
+              {/* Parent Code Button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setParentCodeDialogOpen(true)}
+                className="gap-2"
+              >
+                <Users className="h-4 w-4" />
+                Parent Access
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -229,6 +241,13 @@ export default function AthleteDetail() {
         onOpenChange={setLogDialogOpen}
         workout={selectedWorkout}
         teamAthleteId={id}
+        athleteName={athleteName}
+      />
+
+      <GenerateParentCodeDialog
+        open={parentCodeDialogOpen}
+        onOpenChange={setParentCodeDialogOpen}
+        teamAthleteId={id!}
         athleteName={athleteName}
       />
     </AppLayout>
