@@ -37,7 +37,6 @@ import {
 } from '@/components/ui/popover';
 import { useCreateScheduledWorkout } from '@/hooks/useScheduledWorkouts';
 import { useCreateRace } from '@/hooks/useRaces';
-import { useDistances } from '@/hooks/useDistances';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveSeason } from '@/hooks/useSeasons';
 import { cn } from '@/lib/utils';
@@ -277,16 +276,23 @@ function AddWorkoutForm({
   );
 }
 
-// Race form schema
+// Race form schema - distances are only associated with results, not races
+const safeUrlSchema = z.string()
+  .refine(
+    val => !val || /^https?:\/\//i.test(val),
+    { message: 'URL must start with http:// or https://' }
+  )
+  .optional()
+  .or(z.literal(''));
+
 const raceSchema = z.object({
-  name: z.string().min(1, 'Race name is required'),
+  name: z.string().min(1, 'Race name is required').max(100, 'Race name too long'),
   race_date: z.date(),
-  distance_id: z.string().min(1, 'Distance is required'),
-  location: z.string().optional(),
-  details: z.string().optional(),
-  transportation_info: z.string().optional(),
-  map_link: z.string().url().optional().or(z.literal('')),
-  results_link: z.string().url().optional().or(z.literal('')),
+  location: z.string().max(200, 'Location too long').optional(),
+  details: z.string().max(2000, 'Details too long').optional(),
+  transportation_info: z.string().max(500, 'Transportation info too long').optional(),
+  map_link: safeUrlSchema,
+  results_link: safeUrlSchema,
 });
 
 function AddRaceForm({ 
@@ -300,7 +306,6 @@ function AddRaceForm({
 }) {
   const { currentTeam, user } = useAuth();
   const { data: activeSeason } = useActiveSeason(currentTeam?.id);
-  const { data: distances = [] } = useDistances();
   const createRace = useCreateRace();
 
   const form = useForm<z.infer<typeof raceSchema>>({
@@ -308,7 +313,6 @@ function AddRaceForm({
     defaultValues: {
       name: '',
       race_date: initialDate || new Date(),
-      distance_id: '',
       location: '',
       details: '',
       transportation_info: '',
@@ -326,7 +330,6 @@ function AddRaceForm({
         season_id: activeSeason?.id || null,
         name: values.name,
         race_date: format(values.race_date, 'yyyy-MM-dd'),
-        distance_id: values.distance_id,
         location: values.location || undefined,
         details: values.details || undefined,
         transportation_info: values.transportation_info || undefined,
@@ -394,46 +397,19 @@ function AddRaceForm({
           )}
         />
 
-        <div className="grid grid-cols-2 gap-4">
-          <FormField
-            control={form.control}
-            name="distance_id"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Distance</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select distance" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {distances.map((distance) => (
-                      <SelectItem key={distance.id} value={distance.id}>
-                        {distance.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name="location"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Location</FormLabel>
-                <FormControl>
-                  <Input placeholder="e.g., Central Park" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-        </div>
+        <FormField
+          control={form.control}
+          name="location"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Location</FormLabel>
+              <FormControl>
+                <Input placeholder="e.g., Central Park" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
 
         <FormField
           control={form.control}
