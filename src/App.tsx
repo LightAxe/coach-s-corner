@@ -20,6 +20,7 @@ import AthleteDetail from "./pages/AthleteDetail";
 import Records from "./pages/Records";
 import TrainingJournal from "./pages/TrainingJournal";
 import TeamSettings from "./pages/TeamSettings";
+import AccountSettings from "./pages/AccountSettings";
 import ParentAccess from "./pages/ParentAccess";
 import AuditLog from "./pages/AuditLog";
 import NotFound from "./pages/NotFound";
@@ -57,7 +58,12 @@ const App = () => (
                   <LinkChild />
                 </ProtectedRoute>
               } />
-              
+              <Route path="/account-settings" element={
+                <ProtectedRoute>
+                  <AccountSettings />
+                </ProtectedRoute>
+              } />
+
               {/* Auth + Team required */}
               <Route path="/" element={
                 <ProtectedRoute requireTeam>

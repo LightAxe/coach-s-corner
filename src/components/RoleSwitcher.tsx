@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, Shield, Users, LogOut, Download } from 'lucide-react';
+import { User, Shield, Users, LogOut, Download, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ExportDataDialog } from './ExportDataDialog';
 
@@ -52,6 +52,10 @@ export function RoleSwitcher() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => navigate('/account-settings')}>
+          <Settings className="h-4 w-4 mr-2" />
+          Account Settings
+        </DropdownMenuItem>
         <DropdownMenuItem onClick={() => setExportDialogOpen(true)}>
           <Download className="h-4 w-4 mr-2" />
           Download Your Data
