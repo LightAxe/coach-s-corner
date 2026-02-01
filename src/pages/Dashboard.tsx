@@ -6,6 +6,7 @@ import { WeekPreview } from '@/components/dashboard/WeekPreview';
 import { QuickStats } from '@/components/dashboard/QuickStats';
 import { RecentAthleteActivity } from '@/components/dashboard/RecentAthleteActivity';
 import { ParentDashboard } from '@/components/dashboard/ParentDashboard';
+import { ParentAccessCard } from '@/components/dashboard/ParentAccessCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveSeason } from '@/hooks/useSeasons';
 import { 
@@ -19,7 +20,7 @@ import {
 } from '@/hooks/useDashboardData';
 
 export default function Dashboard() {
-  const { currentTeam, isCoach, isParent } = useAuth();
+  const { currentTeam, isCoach, isAthlete, isParent } = useAuth();
 
   // If parent, render parent-specific dashboard
   if (isParent) {
@@ -88,6 +89,7 @@ export default function Dashboard() {
                 isLoading={activityLoading} 
               />
             )}
+            {isAthlete && <ParentAccessCard />}
           </div>
         </div>
       </div>
