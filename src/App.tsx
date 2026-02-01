@@ -11,6 +11,7 @@ import Signup from "./pages/Signup";
 import VerifyOtp from "./pages/VerifyOtp";
 import CreateTeam from "./pages/CreateTeam";
 import JoinTeam from "./pages/JoinTeam";
+import LinkChild from "./pages/LinkChild";
 import Dashboard from "./pages/Dashboard";
 import Calendar from "./pages/Calendar";
 import Athletes from "./pages/Athletes";
@@ -45,6 +46,11 @@ const App = () => (
               <Route path="/join-team" element={
                 <ProtectedRoute>
                   <JoinTeam />
+                </ProtectedRoute>
+              } />
+              <Route path="/link-child" element={
+                <ProtectedRoute>
+                  <LinkChild />
                 </ProtectedRoute>
               } />
               

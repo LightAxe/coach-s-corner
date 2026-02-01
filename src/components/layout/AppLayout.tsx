@@ -8,7 +8,8 @@ import {
   BookOpen,
   Settings,
   Menu,
-  X
+  X,
+  Link2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -28,27 +29,32 @@ interface NavItem {
   icon: typeof Home;
   coachOnly?: boolean;
   athleteOnly?: boolean;
+  parentOnly?: boolean;
+  hideForParent?: boolean;
 }
 
 const navigation: NavItem[] = [
   { name: 'Dashboard', href: '/', icon: Home },
-  { name: 'Calendar', href: '/calendar', icon: Calendar },
+  { name: 'Calendar', href: '/calendar', icon: Calendar, hideForParent: true },
   { name: 'Journal', href: '/journal', icon: BookOpen, athleteOnly: true },
   { name: 'Athletes', href: '/athletes', icon: Users, coachOnly: true },
   { name: 'Records', href: '/records', icon: Trophy, coachOnly: true },
   { name: 'Team Settings', href: '/team-settings', icon: Settings, coachOnly: true },
+  { name: 'Link Child', href: '/link-child', icon: Link2, parentOnly: true },
 ];
 
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isCoach, isAthlete, currentTeam } = useAuth();
+  const { isCoach, isAthlete, isParent, currentTeam } = useAuth();
   const { data: activeSeason } = useActiveSeason(currentTeam?.id);
 
   // Filter navigation based on role
   const visibleNavigation = navigation.filter((item) => {
     if (item.coachOnly && !isCoach) return false;
     if (item.athleteOnly && !isAthlete) return false;
+    if (item.parentOnly && !isParent) return false;
+    if (item.hideForParent && isParent) return false;
     return true;
   });
 
