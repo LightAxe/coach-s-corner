@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useAuditLogs, type AuditLogEntry } from '@/hooks/useAuditLogs';
+import { usePagination } from '@/hooks/usePagination';
+import { PaginationControls } from '@/components/PaginationControls';
 
 const TABLE_LABELS: Record<string, string> = {
   team_athletes: 'Athlete',
@@ -150,7 +152,17 @@ function AuditLogItem({ log }: { log: AuditLogEntry }) {
 }
 
 export default function AuditLogPage() {
-  const { data: logs, isLoading } = useAuditLogs(200);
+  const { data: logs = [], isLoading } = useAuditLogs(500);
+
+  const {
+    paginatedItems: paginatedLogs,
+    currentPage,
+    totalPages,
+    totalItems,
+    goToPage,
+    startIndex,
+    endIndex,
+  } = usePagination(logs, { pageSize: 25 });
 
   return (
     <AppLayout>
@@ -169,7 +181,9 @@ export default function AuditLogPage() {
               Recent Activity
             </CardTitle>
             <CardDescription>
-              Last 200 changes to athletes, workouts, races, and more
+              {totalItems > 0
+                ? `${totalItems} changes to athletes, workouts, races, and more`
+                : 'Changes to athletes, workouts, races, and more'}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -179,12 +193,23 @@ export default function AuditLogPage() {
                   <Skeleton key={i} className="h-16 w-full" />
                 ))}
               </div>
-            ) : logs && logs.length > 0 ? (
-              <div className="divide-y">
-                {logs.map((log) => (
-                  <AuditLogItem key={log.id} log={log} />
-                ))}
-              </div>
+            ) : totalItems > 0 ? (
+              <>
+                <div className="divide-y">
+                  {paginatedLogs.map((log) => (
+                    <AuditLogItem key={log.id} log={log} />
+                  ))}
+                </div>
+                <PaginationControls
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={goToPage}
+                  startIndex={startIndex}
+                  endIndex={endIndex}
+                  totalItems={totalItems}
+                  className="mt-6"
+                />
+              </>
             ) : (
               <div className="text-center py-12 text-muted-foreground">
                 <History className="h-12 w-12 mx-auto mb-3 opacity-50" />

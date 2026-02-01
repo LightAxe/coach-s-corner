@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { format, subDays, startOfDay, endOfDay, isWithinInterval, parseISO } from 'date-fns';
 import { CalendarIcon, BookOpen, Trophy } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
@@ -12,8 +12,10 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAthleteWorkoutLogs } from '@/hooks/useWorkoutLogs';
 import { useProfileRaceResults } from '@/hooks/useRaceResults';
+import { usePagination } from '@/hooks/usePagination';
 import { JournalEntry } from '@/components/journal/JournalEntry';
 import { RaceEntry } from '@/components/journal/RaceEntry';
+import { PaginationControls } from '@/components/PaginationControls';
 
 type DateRange = {
   from: Date | undefined;
@@ -126,14 +128,27 @@ export default function TrainingJournal() {
     }
   };
 
-  // Group logs by month for timeline
+  // Paginate filtered workouts
+  const workoutsPagination = usePagination(filteredLogs, { pageSize: 25 });
+  const racesPagination = usePagination(filteredRaces, { pageSize: 25 });
+
+  // Reset pagination when date range changes
+  useEffect(() => {
+    workoutsPagination.goToPage(1);
+  }, [dateRange, activePreset]);
+
+  useEffect(() => {
+    racesPagination.goToPage(1);
+  }, [dateRange, activePreset]);
+
+  // Group paginated logs by month for timeline
   const groupedLogs = useMemo(() => {
     const groups: Record<string, typeof filteredLogs> = {};
-    
-    filteredLogs.forEach((log) => {
+
+    workoutsPagination.paginatedItems.forEach((log) => {
       const workoutDate = log.scheduled_workouts?.scheduled_date;
       if (!workoutDate) return;
-      
+
       const monthKey = format(parseISO(workoutDate), 'MMMM yyyy');
       if (!groups[monthKey]) {
         groups[monthKey] = [];
@@ -142,16 +157,16 @@ export default function TrainingJournal() {
     });
 
     return groups;
-  }, [filteredLogs]);
+  }, [workoutsPagination.paginatedItems]);
 
-  // Group races by month for timeline
+  // Group paginated races by month for timeline
   const groupedRaces = useMemo(() => {
     const groups: Record<string, typeof filteredRaces> = {};
-    
-    filteredRaces.forEach((result) => {
+
+    racesPagination.paginatedItems.forEach((result) => {
       const raceDate = result.races?.race_date || result.achieved_at;
       if (!raceDate) return;
-      
+
       const monthKey = format(parseISO(raceDate), 'MMMM yyyy');
       if (!groups[monthKey]) {
         groups[monthKey] = [];
@@ -160,7 +175,7 @@ export default function TrainingJournal() {
     });
 
     return groups;
-  }, [filteredRaces]);
+  }, [racesPagination.paginatedItems]);
 
   return (
     <AppLayout>
@@ -294,20 +309,31 @@ export default function TrainingJournal() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
-                {Object.entries(groupedLogs).map(([month, monthLogs]) => (
-                  <div key={month}>
-                    <h2 className="text-lg font-semibold text-muted-foreground mb-3 sticky top-0 bg-background py-2">
-                      {month}
-                    </h2>
-                    <div className="space-y-3">
-                      {monthLogs.map((log) => (
-                        <JournalEntry key={log.id} log={log as any} />
-                      ))}
+              <>
+                <div className="space-y-6">
+                  {Object.entries(groupedLogs).map(([month, monthLogs]) => (
+                    <div key={month}>
+                      <h2 className="text-lg font-semibold text-muted-foreground mb-3 sticky top-0 bg-background py-2">
+                        {month}
+                      </h2>
+                      <div className="space-y-3">
+                        {monthLogs.map((log) => (
+                          <JournalEntry key={log.id} log={log as any} />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                <PaginationControls
+                  currentPage={workoutsPagination.currentPage}
+                  totalPages={workoutsPagination.totalPages}
+                  onPageChange={workoutsPagination.goToPage}
+                  startIndex={workoutsPagination.startIndex}
+                  endIndex={workoutsPagination.endIndex}
+                  totalItems={workoutsPagination.totalItems}
+                  className="mt-6"
+                />
+              </>
             )}
           </TabsContent>
 
@@ -357,20 +383,31 @@ export default function TrainingJournal() {
                 </CardContent>
               </Card>
             ) : (
-              <div className="space-y-6">
-                {Object.entries(groupedRaces).map(([month, monthRaces]) => (
-                  <div key={month}>
-                    <h2 className="text-lg font-semibold text-muted-foreground mb-3 sticky top-0 bg-background py-2">
-                      {month}
-                    </h2>
-                    <div className="space-y-3">
-                      {monthRaces.map((result) => (
-                        <RaceEntry key={result.id} result={result} />
-                      ))}
+              <>
+                <div className="space-y-6">
+                  {Object.entries(groupedRaces).map(([month, monthRaces]) => (
+                    <div key={month}>
+                      <h2 className="text-lg font-semibold text-muted-foreground mb-3 sticky top-0 bg-background py-2">
+                        {month}
+                      </h2>
+                      <div className="space-y-3">
+                        {monthRaces.map((result) => (
+                          <RaceEntry key={result.id} result={result} />
+                        ))}
+                      </div>
                     </div>
-                  </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                <PaginationControls
+                  currentPage={racesPagination.currentPage}
+                  totalPages={racesPagination.totalPages}
+                  onPageChange={racesPagination.goToPage}
+                  startIndex={racesPagination.startIndex}
+                  endIndex={racesPagination.endIndex}
+                  totalItems={racesPagination.totalItems}
+                  className="mt-6"
+                />
+              </>
             )}
           </TabsContent>
         </Tabs>
