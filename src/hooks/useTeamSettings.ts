@@ -60,6 +60,27 @@ export function useGenerateCoachInviteCode() {
   });
 }
 
+// Update team name
+export function useUpdateTeamName() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ teamId, name }: { teamId: string; name: string }) => {
+      const { data, error } = await supabase
+        .from('teams')
+        .update({ name })
+        .eq('id', teamId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['team-codes', variables.teamId] });
+      queryClient.invalidateQueries({ queryKey: ['team-memberships'] });
+    },
+  });
+}
+
 // Fetch unlinked team members (signed up but not linked to team_athletes)
 export function useUnlinkedTeamMembers(teamId: string | undefined, seasonId?: string | null) {
   return useQuery({

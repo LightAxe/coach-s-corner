@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Copy, RefreshCw, Users, ShieldCheck, Loader2, Check, Plus, Calendar, Trash2, Star } from 'lucide-react';
+import { Copy, RefreshCw, Users, ShieldCheck, Loader2, Check, Plus, Calendar, Trash2, Star, Pencil, Building2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,10 +10,11 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  useTeamWithCodes, 
+import {
+  useTeamWithCodes,
   useRegenerateTeamCode,
-  useGenerateCoachInviteCode 
+  useGenerateCoachInviteCode,
+  useUpdateTeamName
 } from '@/hooks/useTeamSettings';
 import { useSeasons, useCreateSeason, useSetActiveSeason, useDeleteSeason } from '@/hooks/useSeasons';
 import {
@@ -36,15 +37,25 @@ import {
 } from '@/components/ui/dialog';
 
 export default function TeamSettings() {
-  const { currentTeam, isCoach, user } = useAuth();
+  const { currentTeam, isCoach, user, refreshProfile } = useAuth();
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
   const [newSeasonName, setNewSeasonName] = useState('');
   const [createSeasonOpen, setCreateSeasonOpen] = useState(false);
+  const [editNameOpen, setEditNameOpen] = useState(false);
+  const [editedTeamName, setEditedTeamName] = useState('');
 
   const { data: team, isLoading } = useTeamWithCodes(currentTeam?.id);
   const regenerateCode = useRegenerateTeamCode();
   const generateCoachCode = useGenerateCoachInviteCode();
+  const updateTeamName = useUpdateTeamName();
+
+  // Initialize edited name when team data loads
+  useEffect(() => {
+    if (team?.name) {
+      setEditedTeamName(team.name);
+    }
+  }, [team?.name]);
   
   const { data: seasons = [], isLoading: seasonsLoading } = useSeasons(currentTeam?.id);
   const createSeason = useCreateSeason();
@@ -148,6 +159,26 @@ export default function TeamSettings() {
     }
   };
 
+  const handleUpdateTeamName = async () => {
+    if (!currentTeam || !editedTeamName.trim()) return;
+    try {
+      await updateTeamName.mutateAsync({
+        teamId: currentTeam.id,
+        name: editedTeamName.trim(),
+      });
+      toast({ title: 'Team name updated' });
+      setEditNameOpen(false);
+      // Refresh the auth context to update the team name in the sidebar
+      await refreshProfile();
+    } catch (error: any) {
+      toast({
+        title: 'Failed to update team name',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6 max-w-2xl">
@@ -165,6 +196,41 @@ export default function TeamSettings() {
           </div>
         ) : team ? (
           <div className="space-y-6">
+            {/* Team Info */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Building2 className="h-5 w-5" />
+                  Team Information
+                </CardTitle>
+                <CardDescription>
+                  Basic information about your team.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label>Team Name</Label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={team.name}
+                      readOnly
+                      className="text-lg font-medium"
+                    />
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => {
+                        setEditedTeamName(team.name);
+                        setEditNameOpen(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Athlete Join Code */}
             <Card>
               <CardHeader>
@@ -423,6 +489,37 @@ export default function TeamSettings() {
               <Button variant="outline" onClick={() => setCreateSeasonOpen(false)}>Cancel</Button>
               <Button onClick={handleCreateSeason} disabled={createSeason.isPending || !newSeasonName.trim()}>
                 Create Season
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Edit Team Name Dialog */}
+        <Dialog open={editNameOpen} onOpenChange={setEditNameOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Team Name</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="team-name">Team Name</Label>
+                <Input
+                  id="team-name"
+                  value={editedTeamName}
+                  onChange={(e) => setEditedTeamName(e.target.value)}
+                  placeholder="e.g., Lincoln High XC"
+                  maxLength={100}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setEditNameOpen(false)}>Cancel</Button>
+              <Button
+                onClick={handleUpdateTeamName}
+                disabled={updateTeamName.isPending || !editedTeamName.trim()}
+              >
+                {updateTeamName.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save Changes
               </Button>
             </DialogFooter>
           </DialogContent>
