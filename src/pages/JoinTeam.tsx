@@ -134,10 +134,43 @@ export default function JoinTeam() {
 
       if (joinError) throw joinError;
 
+      // For athletes, auto-create team_athlete record if one doesn't exist
+      if (assignedRole === 'athlete') {
+        // Check if already linked to a team_athlete record
+        const { data: existingTeamAthlete } = await supabase
+          .from('team_athletes')
+          .select('id')
+          .eq('team_id', team.id)
+          .eq('profile_id', user.id)
+          .maybeSingle();
+
+        if (!existingTeamAthlete) {
+          // Get active season for the team
+          const { data: activeSeason } = await supabase
+            .from('seasons')
+            .select('id')
+            .eq('team_id', team.id)
+            .eq('is_active', true)
+            .maybeSingle();
+
+          // Create team_athlete record
+          await supabase
+            .from('team_athletes')
+            .insert({
+              team_id: team.id,
+              profile_id: user.id,
+              first_name: profile.first_name,
+              last_name: profile.last_name,
+              created_by: user.id,
+              season_id: activeSeason?.id || null,
+            });
+        }
+      }
+
       setJoinedTeam(team);
       await refreshProfile();
 
-      // If joined as athlete, show link option
+      // If joined as athlete, show link option (in case they want to link to a different shell record)
       if (assignedRole === 'athlete') {
         setShowLinkOption(true);
       }
@@ -197,15 +230,15 @@ export default function JoinTeam() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {/* Link option for athletes */}
+            {/* Link option for athletes - merge with existing shell record */}
             {showLinkOption && unlinkedAthletes.length > 0 && (
               <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Link2 className="h-4 w-4" />
-                  Link to existing records?
+                  Have existing workout history?
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  If your coach already added you to the team, you can link your account to access your workout history.
+                  If your coach already added you to the roster, link your account to access your previous workouts and race results.
                 </p>
                 {loadingAthletes ? (
                   <div className="flex justify-center py-2">
