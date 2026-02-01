@@ -123,7 +123,7 @@ export default function Calendar() {
         </div>
 
         {/* Week grid */}
-        <div className="grid grid-cols-1 md:grid-cols-7 gap-4">
+        <div className="grid grid-cols-1 lg:grid-cols-7 gap-3 lg:gap-4">
           {weekDays.map((day) => {
             const workout = getWorkoutForDay(day);
             const race = getRaceForDay(day);
@@ -131,17 +131,17 @@ export default function Calendar() {
             const hasItem = workout || race;
 
             return (
-              <Card 
-                key={day.toISOString()} 
+              <Card
+                key={day.toISOString()}
                 className={cn(
-                  'min-h-[200px] transition-all',
+                  'min-h-[120px] lg:min-h-[200px] transition-all',
                   isToday && 'ring-2 ring-primary',
                   race && 'border-accent'
                 )}
               >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <div>
+                <CardContent className="p-3 lg:p-4">
+                  <div className="flex items-center justify-between mb-2 lg:mb-3">
+                    <div className="flex items-center gap-2 lg:block">
                       <p className="text-xs font-medium text-muted-foreground uppercase">
                         {format(day, 'EEE')}
                       </p>
@@ -190,8 +190,8 @@ export default function Calendar() {
                       )}
                     </div>
                   ) : isCoach ? (
-                    <div 
-                      className="flex items-center justify-center h-20 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors"
+                    <div
+                      className="flex items-center justify-center h-14 lg:h-20 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors"
                       onClick={() => handleAddItem(day)}
                     >
                       <Button variant="ghost" size="sm" className="text-muted-foreground">
@@ -200,8 +200,8 @@ export default function Calendar() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center h-20 text-muted-foreground text-sm">
-                      No workout
+                    <div className="flex items-center justify-center h-14 lg:h-20 text-muted-foreground text-sm">
+                      Rest day
                     </div>
                   )}
                 </CardContent>
@@ -212,31 +212,31 @@ export default function Calendar() {
 
         {/* Legend */}
         <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-wrap gap-4">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-workout-easy" />
-                <span className="text-sm text-muted-foreground">Easy</span>
+          <CardContent className="p-3 lg:p-4">
+            <div className="flex flex-wrap gap-x-4 gap-y-2 text-xs lg:text-sm">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-workout-easy" />
+                <span className="text-muted-foreground">Easy</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-workout-tempo" />
-                <span className="text-sm text-muted-foreground">Tempo</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-workout-tempo" />
+                <span className="text-muted-foreground">Tempo</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-workout-interval" />
-                <span className="text-sm text-muted-foreground">Interval</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-workout-interval" />
+                <span className="text-muted-foreground">Interval</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-workout-long" />
-                <span className="text-sm text-muted-foreground">Long Run</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-workout-long" />
+                <span className="text-muted-foreground">Long</span>
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded-full bg-workout-rest" />
-                <span className="text-sm text-muted-foreground">Rest</span>
+              <div className="flex items-center gap-1.5">
+                <div className="w-2.5 h-2.5 lg:w-3 lg:h-3 rounded-full bg-workout-rest" />
+                <span className="text-muted-foreground">Rest</span>
               </div>
-              <div className="flex items-center gap-2">
-                <Trophy className="w-3 h-3 text-accent" />
-                <span className="text-sm text-muted-foreground">Race</span>
+              <div className="flex items-center gap-1.5">
+                <Trophy className="w-2.5 h-2.5 lg:w-3 lg:h-3 text-accent" />
+                <span className="text-muted-foreground">Race</span>
               </div>
             </div>
           </CardContent>

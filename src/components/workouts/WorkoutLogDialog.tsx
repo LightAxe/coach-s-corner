@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { format, parseISO } from 'date-fns';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -10,6 +10,16 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Button } from '@/components/ui/button';
 import {
   Form,
@@ -59,13 +69,14 @@ interface WorkoutLogDialogProps {
   athleteName?: string;
 }
 
-export function WorkoutLogDialog({ 
-  open, 
-  onOpenChange, 
-  workout, 
+export function WorkoutLogDialog({
+  open,
+  onOpenChange,
+  workout,
   teamAthleteId,
-  athleteName 
+  athleteName
 }: WorkoutLogDialogProps) {
+  const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
   const { user } = useAuth();
   
   // Use team athlete log or profile log based on context
@@ -169,8 +180,24 @@ export function WorkoutLogDialog({
   const workoutDate = parseISO(workout.scheduled_date);
   const typeLabel = workout.type.charAt(0).toUpperCase() + workout.type.slice(1);
 
+  // Handle close with unsaved changes check
+  const handleOpenChange = (newOpen: boolean) => {
+    if (!newOpen && form.formState.isDirty) {
+      setDiscardConfirmOpen(true);
+    } else {
+      onOpenChange(newOpen);
+    }
+  };
+
+  const handleDiscardConfirm = () => {
+    setDiscardConfirmOpen(false);
+    form.reset();
+    onOpenChange(false);
+  };
+
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
@@ -363,11 +390,11 @@ export function WorkoutLogDialog({
               />
 
               <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
                   Cancel
                 </Button>
-                <Button 
-                  type="submit" 
+                <Button
+                  type="submit"
                   disabled={createLog.isPending || updateLog.isPending}
                 >
                   {isEditing ? 'Update Log' : 'Save Log'}
@@ -378,5 +405,23 @@ export function WorkoutLogDialog({
         )}
       </DialogContent>
     </Dialog>
+
+    <AlertDialog open={discardConfirmOpen} onOpenChange={setDiscardConfirmOpen}>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Discard changes?</AlertDialogTitle>
+          <AlertDialogDescription>
+            You have unsaved changes. Are you sure you want to discard them?
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Keep editing</AlertDialogCancel>
+          <AlertDialogAction onClick={handleDiscardConfirm}>
+            Discard changes
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+    </>
   );
 }

@@ -1,4 +1,15 @@
+import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -18,6 +29,7 @@ interface RaceDetailDialogProps {
 }
 
 export function RaceDetailDialog({ race, open, onOpenChange }: RaceDetailDialogProps) {
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const { isCoach } = useAuth();
   const deleteRace = useDeleteRace();
   const { data: distances = [] } = useDistances();
@@ -28,13 +40,10 @@ export function RaceDetailDialog({ race, open, onOpenChange }: RaceDetailDialogP
   if (!race) return null;
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this race? All results will also be deleted.')) {
-      return;
-    }
-
     try {
       await deleteRace.mutateAsync({ id: race.id, team_id: race.team_id });
       toast.success('Race deleted');
+      setDeleteConfirmOpen(false);
       onOpenChange(false);
     } catch (error) {
       toast.error('Failed to delete race');
@@ -119,12 +128,32 @@ export function RaceDetailDialog({ race, open, onOpenChange }: RaceDetailDialogP
 
             {isCoach && (
               <div className="pt-4 border-t">
-                <Button variant="destructive" size="sm" onClick={handleDelete}>
+                <Button variant="destructive" size="sm" onClick={() => setDeleteConfirmOpen(true)}>
                   <Trash2 className="h-4 w-4 mr-2" />
                   Delete Race
                 </Button>
               </div>
             )}
+
+            <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Delete Race</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to delete "{race.name}"? All results associated with this race will also be deleted. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDelete}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    Delete Race
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </TabsContent>
 
           <TabsContent value="results" className="mt-4">
