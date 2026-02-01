@@ -15,6 +15,8 @@ import { AddCalendarItemDialog } from '@/components/calendar/AddCalendarItemDial
 import { RaceCard } from '@/components/races/RaceCard';
 import { RaceDetailDialog } from '@/components/races/RaceDetailDialog';
 import { WorkoutLogDialog } from '@/components/workouts/WorkoutLogDialog';
+import { WorkoutDetailDialog } from '@/components/workouts/WorkoutDetailDialog';
+import { EditWorkoutDialog } from '@/components/workouts/EditWorkoutDialog';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -24,6 +26,8 @@ export default function Calendar() {
   const [raceDetailOpen, setRaceDetailOpen] = useState(false);
   const [selectedWorkout, setSelectedWorkout] = useState<ScheduledWorkout | null>(null);
   const [workoutLogOpen, setWorkoutLogOpen] = useState(false);
+  const [workoutDetailOpen, setWorkoutDetailOpen] = useState(false);
+  const [editWorkoutOpen, setEditWorkoutOpen] = useState(false);
   
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
@@ -78,11 +82,18 @@ export default function Calendar() {
   };
 
   const handleWorkoutClick = (workout: ScheduledWorkout) => {
-    // Athletes can log workouts, coaches just view them for now
-    if (!isCoach) {
-      setSelectedWorkout(workout);
+    setSelectedWorkout(workout);
+    if (isCoach) {
+      // Coaches see detail dialog with edit/delete options
+      setWorkoutDetailOpen(true);
+    } else {
+      // Athletes can log workouts
       setWorkoutLogOpen(true);
     }
+  };
+
+  const handleEditWorkout = () => {
+    setEditWorkoutOpen(true);
   };
 
   return (
@@ -169,10 +180,7 @@ export default function Calendar() {
                     </div>
                   ) : workout ? (
                     <div 
-                      className={cn(
-                        "space-y-2",
-                        !isCoach && "cursor-pointer hover:opacity-80 transition-opacity"
-                      )}
+                      className="space-y-2 cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => handleWorkoutClick(workout)}
                     >
                       <Badge 
@@ -185,9 +193,9 @@ export default function Calendar() {
                       {workout.athlete_notes && (
                         <p className="text-xs text-muted-foreground truncate">{workout.athlete_notes}</p>
                       )}
-                      {!isCoach && (
-                        <p className="text-xs text-primary">Click to log</p>
-                      )}
+                      <p className="text-xs text-primary">
+                        {isCoach ? 'Click to edit' : 'Click to log'}
+                      </p>
                     </div>
                   ) : isCoach ? (
                     <div
@@ -258,6 +266,21 @@ export default function Calendar() {
           open={workoutLogOpen}
           onOpenChange={setWorkoutLogOpen}
           workout={selectedWorkout}
+        />
+
+        <WorkoutDetailDialog
+          open={workoutDetailOpen}
+          onOpenChange={setWorkoutDetailOpen}
+          workout={selectedWorkout}
+          teamId={currentTeam?.id || ''}
+          onEdit={handleEditWorkout}
+        />
+
+        <EditWorkoutDialog
+          open={editWorkoutOpen}
+          onOpenChange={setEditWorkoutOpen}
+          workout={selectedWorkout}
+          teamId={currentTeam?.id || ''}
         />
       </div>
     </AppLayout>

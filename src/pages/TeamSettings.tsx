@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { Copy, RefreshCw, Users, ShieldCheck, Loader2, Check, Plus } from 'lucide-react';
+import { Copy, RefreshCw, Users, ShieldCheck, Loader2, Check, Plus, Calendar, Trash2, Star } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
@@ -14,6 +15,7 @@ import {
   useRegenerateTeamCode,
   useGenerateCoachInviteCode 
 } from '@/hooks/useTeamSettings';
+import { useSeasons, useCreateSeason, useSetActiveSeason, useDeleteSeason } from '@/hooks/useSeasons';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,15 +27,29 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 
 export default function TeamSettings() {
-  const { currentTeam, isCoach } = useAuth();
+  const { currentTeam, isCoach, user } = useAuth();
   const { toast } = useToast();
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [newSeasonName, setNewSeasonName] = useState('');
+  const [createSeasonOpen, setCreateSeasonOpen] = useState(false);
 
   const { data: team, isLoading } = useTeamWithCodes(currentTeam?.id);
   const regenerateCode = useRegenerateTeamCode();
   const generateCoachCode = useGenerateCoachInviteCode();
+  
+  const { data: seasons = [], isLoading: seasonsLoading } = useSeasons(currentTeam?.id);
+  const createSeason = useCreateSeason();
+  const setActiveSeason = useSetActiveSeason();
+  const deleteSeason = useDeleteSeason();
 
   // Redirect non-coaches
   if (!isCoach) {
@@ -95,13 +111,50 @@ export default function TeamSettings() {
     }
   };
 
+  const handleCreateSeason = async () => {
+    if (!currentTeam || !user || !newSeasonName.trim()) return;
+    try {
+      await createSeason.mutateAsync({
+        team_id: currentTeam.id,
+        name: newSeasonName.trim(),
+        created_by: user.id,
+        is_active: seasons.length === 0,
+      });
+      toast({ title: 'Season created' });
+      setNewSeasonName('');
+      setCreateSeasonOpen(false);
+    } catch (error: any) {
+      toast({ title: 'Failed to create season', description: error.message, variant: 'destructive' });
+    }
+  };
+
+  const handleSetActive = async (seasonId: string) => {
+    if (!currentTeam) return;
+    try {
+      await setActiveSeason.mutateAsync({ seasonId, teamId: currentTeam.id });
+      toast({ title: 'Active season updated' });
+    } catch (error: any) {
+      toast({ title: 'Failed to set active season', variant: 'destructive' });
+    }
+  };
+
+  const handleDeleteSeason = async (seasonId: string) => {
+    if (!currentTeam) return;
+    try {
+      await deleteSeason.mutateAsync({ id: seasonId, teamId: currentTeam.id });
+      toast({ title: 'Season deleted' });
+    } catch (error: any) {
+      toast({ title: 'Failed to delete season', variant: 'destructive' });
+    }
+  };
+
   return (
     <AppLayout>
       <div className="space-y-6 max-w-2xl">
         <div>
           <h1 className="text-2xl font-heading font-bold">Team Settings</h1>
           <p className="text-muted-foreground">
-            Manage your team's join codes and settings.
+            Manage your team's join codes, seasons, and settings.
           </p>
         </div>
 
@@ -264,6 +317,82 @@ export default function TeamSettings() {
                 )}
               </CardContent>
             </Card>
+            {/* Season Management */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Calendar className="h-5 w-5" />
+                  Season Management
+                </CardTitle>
+                <CardDescription>
+                  Create and manage seasons to organize athletes and track records by time period.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {seasonsLoading ? (
+                  <Skeleton className="h-20 w-full" />
+                ) : seasons.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No seasons created yet.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {seasons.map((season) => (
+                      <div
+                        key={season.id}
+                        className="flex items-center justify-between p-3 rounded-lg border bg-card"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{season.name}</span>
+                          {season.is_active && (
+                            <Badge variant="default" className="text-xs">Active</Badge>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          {!season.is_active && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleSetActive(season.id)}
+                              disabled={setActiveSeason.isPending}
+                            >
+                              <Star className="h-4 w-4 mr-1" />
+                              Set Active
+                            </Button>
+                          )}
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete season?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  This will delete "{season.name}". Athletes and data linked to this season may be affected.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => handleDeleteSeason(season.id)}>
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <Button onClick={() => setCreateSeasonOpen(true)} className="w-full sm:w-auto">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Season
+                </Button>
+              </CardContent>
+            </Card>
           </div>
         ) : (
           <Card className="border-dashed">
@@ -272,6 +401,32 @@ export default function TeamSettings() {
             </CardContent>
           </Card>
         )}
+
+        {/* Create Season Dialog */}
+        <Dialog open={createSeasonOpen} onOpenChange={setCreateSeasonOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Season</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="season-name">Season Name</Label>
+                <Input
+                  id="season-name"
+                  value={newSeasonName}
+                  onChange={(e) => setNewSeasonName(e.target.value)}
+                  placeholder="e.g., Fall 2024"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setCreateSeasonOpen(false)}>Cancel</Button>
+              <Button onClick={handleCreateSeason} disabled={createSeason.isPending || !newSeasonName.trim()}>
+                Create Season
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </AppLayout>
   );
