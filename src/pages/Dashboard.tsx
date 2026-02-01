@@ -9,12 +9,12 @@ import { ParentDashboard } from '@/components/dashboard/ParentDashboard';
 import { ParentAccessCard } from '@/components/dashboard/ParentAccessCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveSeason } from '@/hooks/useSeasons';
+import { useAnnouncements } from '@/hooks/useAnnouncements';
 import { 
   useTodayWorkout, 
   useTodayRace,
   useScheduledWorkouts, 
   useWeekRaces,
-  useAnnouncements, 
   useTeamStats,
   useRecentAthleteActivity
 } from '@/hooks/useDashboardData';
@@ -73,7 +73,7 @@ export default function Dashboard() {
             ) : (
               <TodayWorkout workout={todayWorkout} isLoading={todayLoading} />
             )}
-            <AnnouncementCard announcements={announcements} isLoading={announcementsLoading} />
+            <AnnouncementCard announcements={announcements} isLoading={announcementsLoading} isCoach={isCoach} />
           </div>
 
           {/* Right column */}
