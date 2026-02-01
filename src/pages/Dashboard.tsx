@@ -6,6 +6,7 @@ import { WeekPreview } from '@/components/dashboard/WeekPreview';
 import { QuickStats } from '@/components/dashboard/QuickStats';
 import { RecentAthleteActivity } from '@/components/dashboard/RecentAthleteActivity';
 import { useAuth } from '@/contexts/AuthContext';
+import { useActiveSeason } from '@/hooks/useSeasons';
 import { 
   useTodayWorkout, 
   useTodayRace,
@@ -19,13 +20,14 @@ import {
 export default function Dashboard() {
   const { currentTeam, isCoach } = useAuth();
   const teamId = currentTeam?.id;
+  const { data: activeSeason } = useActiveSeason(teamId);
 
   const { data: todayWorkout, isLoading: todayLoading } = useTodayWorkout(teamId);
   const { data: todayRace, isLoading: raceLoading } = useTodayRace(teamId);
   const { data: weekWorkouts = [], isLoading: weekLoading } = useScheduledWorkouts(teamId);
   const { data: weekRaces = [], isLoading: weekRacesLoading } = useWeekRaces(teamId);
   const { data: announcements = [], isLoading: announcementsLoading } = useAnnouncements(teamId);
-  const { data: stats, isLoading: statsLoading } = useTeamStats(teamId);
+  const { data: stats, isLoading: statsLoading } = useTeamStats(teamId, activeSeason?.id);
   const { data: recentActivity = [], isLoading: activityLoading } = useRecentAthleteActivity(
     isCoach ? teamId : undefined, 
     10

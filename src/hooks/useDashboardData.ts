@@ -157,19 +157,25 @@ export function useAnnouncements(teamId: string | undefined) {
 }
 
 // Fetch team stats (athlete count, today's completions, weekly miles)
-export function useTeamStats(teamId: string | undefined) {
+export function useTeamStats(teamId: string | undefined, seasonId?: string | null) {
   const today = format(new Date(), 'yyyy-MM-dd');
   
   return useQuery({
-    queryKey: ['team-stats', teamId, today],
+    queryKey: ['team-stats', teamId, seasonId, today],
     queryFn: async () => {
       if (!teamId) return { totalAthletes: 0, workoutsCompleted: 0, weeklyMiles: 0 };
       
-      // Get athlete count from team_athletes (includes shell + linked athletes)
-      const { count: athleteCount, error: athleteError } = await supabase
+      // Get athlete count from team_athletes, filtered by season if provided
+      let athleteQuery = supabase
         .from('team_athletes')
         .select('*', { count: 'exact', head: true })
         .eq('team_id', teamId);
+      
+      if (seasonId) {
+        athleteQuery = athleteQuery.eq('season_id', seasonId);
+      }
+      
+      const { count: athleteCount, error: athleteError } = await athleteQuery;
       
       if (athleteError) throw athleteError;
       
