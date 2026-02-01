@@ -7,6 +7,7 @@ import { Loader2, Users, GraduationCap, Heart, Mail } from 'lucide-react';
 import { useAuth, UserRole } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
@@ -32,7 +33,14 @@ const signupSchema = z.object({
   role: z.enum(['coach', 'athlete', 'parent'], {
     required_error: 'Please select a role',
   }),
-});
+  ageConfirmed: z.boolean().optional(),
+}).refine(
+  (data) => data.role !== 'athlete' || data.ageConfirmed === true,
+  {
+    message: 'You must confirm you are 13 or older to create an account',
+    path: ['ageConfirmed'],
+  }
+);
 
 type SignupFormData = z.infer<typeof signupSchema>;
 
@@ -71,6 +79,7 @@ export default function Signup() {
       email: '',
       phone: '',
       role: undefined,
+      ageConfirmed: false,
     },
   });
 
@@ -216,6 +225,29 @@ export default function Signup() {
                 )}
               />
 
+              {selectedRole === 'athlete' && (
+                <FormField
+                  control={form.control}
+                  name="ageConfirmed"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                      <FormControl>
+                        <Checkbox
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                      <div className="space-y-1 leading-none">
+                        <FormLabel className="cursor-pointer">
+                          I confirm that I am 13 years of age or older
+                        </FormLabel>
+                        <FormMessage />
+                      </div>
+                    </FormItem>
+                  )}
+                />
+              )}
+
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -224,6 +256,13 @@ export default function Signup() {
                 )}
                 Send verification code
               </Button>
+
+              <p className="text-xs text-muted-foreground text-center">
+                By creating an account, you agree to our{' '}
+                <Link to="/privacy" className="text-primary hover:underline">
+                  Privacy Policy
+                </Link>
+              </p>
             </form>
           </Form>
         </CardContent>
