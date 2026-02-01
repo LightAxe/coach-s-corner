@@ -281,3 +281,53 @@ export function useChildRaces(teamId?: string) {
     enabled: !!teamId,
   });
 }
+
+// Get parents linked to a specific team athlete (for athletes to see their linked parents)
+export interface LinkedParent {
+  id: string;
+  parent_id: string;
+  created_at: string;
+  parent: {
+    id: string;
+    first_name: string;
+    last_name: string;
+  } | null;
+}
+
+export function useLinkedParents(teamAthleteId?: string) {
+  return useQuery({
+    queryKey: ['linked-parents', teamAthleteId],
+    queryFn: async () => {
+      if (!teamAthleteId) return [];
+
+      const { data, error } = await supabase
+        .from('parent_athlete_links')
+        .select(`
+          id,
+          parent_id,
+          created_at,
+          profiles!parent_athlete_links_parent_id_fkey (
+            id,
+            first_name,
+            last_name
+          )
+        `)
+        .eq('team_athlete_id', teamAthleteId)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching linked parents:', error);
+        throw error;
+      }
+
+      // Transform to match interface
+      return (data || []).map(link => ({
+        id: link.id,
+        parent_id: link.parent_id,
+        created_at: link.created_at,
+        parent: link.profiles as LinkedParent['parent'],
+      }));
+    },
+    enabled: !!teamAthleteId,
+  });
+}

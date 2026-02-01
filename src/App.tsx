@@ -19,6 +19,7 @@ import AthleteDetail from "./pages/AthleteDetail";
 import Records from "./pages/Records";
 import TrainingJournal from "./pages/TrainingJournal";
 import TeamSettings from "./pages/TeamSettings";
+import ParentAccess from "./pages/ParentAccess";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -83,6 +84,11 @@ const App = () => (
               <Route path="/journal" element={
                 <ProtectedRoute requireTeam>
                   <TrainingJournal />
+                </ProtectedRoute>
+              } />
+              <Route path="/parent-access" element={
+                <ProtectedRoute requireTeam>
+                  <ParentAccess />
                 </ProtectedRoute>
               } />
               <Route path="/team-settings" element={
