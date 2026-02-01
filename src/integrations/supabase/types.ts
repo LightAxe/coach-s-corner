@@ -73,6 +73,57 @@ export type Database = {
           },
         ]
       }
+      audit_logs: {
+        Row: {
+          action: string
+          id: string
+          new_values: Json | null
+          old_values: Json | null
+          performed_at: string
+          performed_by: string | null
+          record_id: string
+          table_name: string
+          team_id: string | null
+        }
+        Insert: {
+          action: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+          record_id: string
+          table_name: string
+          team_id?: string | null
+        }
+        Update: {
+          action?: string
+          id?: string
+          new_values?: Json | null
+          old_values?: Json | null
+          performed_at?: string
+          performed_by?: string | null
+          record_id?: string
+          table_name?: string
+          team_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audit_logs_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "audit_logs_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       distances: {
         Row: {
           created_at: string

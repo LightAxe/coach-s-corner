@@ -21,6 +21,7 @@ import Records from "./pages/Records";
 import TrainingJournal from "./pages/TrainingJournal";
 import TeamSettings from "./pages/TeamSettings";
 import ParentAccess from "./pages/ParentAccess";
+import AuditLog from "./pages/AuditLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -91,6 +92,11 @@ const App = () => (
               <Route path="/parent-access" element={
                 <ProtectedRoute requireTeam>
                   <ParentAccess />
+                </ProtectedRoute>
+              } />
+              <Route path="/audit-log" element={
+                <ProtectedRoute requireTeam>
+                  <AuditLog />
                 </ProtectedRoute>
               } />
               <Route path="/team-settings" element={
