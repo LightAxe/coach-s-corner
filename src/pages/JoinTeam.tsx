@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Check, UserPlus, Link2 } from 'lucide-react';
+import { Loader2, Check, UserPlus } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -11,14 +11,6 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
-import { useUnlinkedTeamAthletes, useLinkTeamAthlete } from '@/hooks/useTeamAthletes';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
 
 const joinTeamSchema = z.object({
   joinCode: z.string().length(6, 'Join code must be 6 characters'),
@@ -34,16 +26,9 @@ type JoinedTeamInfo = {
 export default function JoinTeam() {
   const [isLoading, setIsLoading] = useState(false);
   const [joinedTeam, setJoinedTeam] = useState<JoinedTeamInfo | null>(null);
-  const [showLinkOption, setShowLinkOption] = useState(false);
-  const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  const { data: unlinkedAthletes = [], isLoading: loadingAthletes } = useUnlinkedTeamAthletes(
-    joinedTeam?.id
-  );
-  const linkAthlete = useLinkTeamAthlete();
 
   const form = useForm<JoinTeamFormData>({
     resolver: zodResolver(joinTeamSchema),
@@ -170,11 +155,6 @@ export default function JoinTeam() {
       setJoinedTeam(team);
       await refreshProfile();
 
-      // If joined as athlete, show link option (in case they want to link to a different shell record)
-      if (assignedRole === 'athlete') {
-        setShowLinkOption(true);
-      }
-
       toast({
         title: 'Joined team!',
         description: `Welcome to ${team.name}!${assignedRole === 'coach' ? ' You have been added as a coach.' : ''}`,
@@ -187,32 +167,6 @@ export default function JoinTeam() {
       });
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleLinkAthlete = async () => {
-    if (!selectedAthleteId || !joinedTeam || !user) return;
-
-    try {
-      await linkAthlete.mutateAsync({
-        id: selectedAthleteId,
-        team_id: joinedTeam.id,
-        profile_id: user.id,
-      });
-
-      const athlete = unlinkedAthletes.find(a => a.id === selectedAthleteId);
-      toast({
-        title: 'Account linked!',
-        description: `Your account has been linked to ${athlete?.first_name} ${athlete?.last_name}'s records.`,
-      });
-
-      navigate('/');
-    } catch (error: any) {
-      toast({
-        title: 'Failed to link account',
-        description: error.message,
-        variant: 'destructive',
-      });
     }
   };
 
@@ -229,51 +183,7 @@ export default function JoinTeam() {
               You've successfully joined {joinedTeam.name}.
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Link option for athletes - merge with existing shell record */}
-            {showLinkOption && unlinkedAthletes.length > 0 && (
-              <div className="space-y-3 p-4 bg-muted/50 rounded-lg">
-                <div className="flex items-center gap-2 text-sm font-medium">
-                  <Link2 className="h-4 w-4" />
-                  Have existing workout history?
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  If your coach already added you to the roster, link your account to access your previous workouts and race results.
-                </p>
-                {loadingAthletes ? (
-                  <div className="flex justify-center py-2">
-                    <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-                  </div>
-                ) : (
-                  <>
-                    <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your name" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {unlinkedAthletes.map((athlete) => (
-                          <SelectItem key={athlete.id} value={athlete.id}>
-                            {athlete.first_name} {athlete.last_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    {selectedAthleteId && (
-                      <Button 
-                        variant="secondary" 
-                        className="w-full" 
-                        onClick={handleLinkAthlete}
-                        disabled={linkAthlete.isPending}
-                      >
-                        {linkAthlete.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                        Link My Account
-                      </Button>
-                    )}
-                  </>
-                )}
-              </div>
-            )}
-
+          <CardContent>
             <Button className="w-full" onClick={() => navigate('/')}>
               Go to Dashboard
             </Button>
