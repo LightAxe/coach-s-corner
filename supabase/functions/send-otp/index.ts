@@ -3,17 +3,75 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// Dynamic CORS with pattern matching for lovable.app domains
+function isAllowedOrigin(origin: string | null): boolean {
+  if (!origin) return false;
+  
+  // Allow lovable.app domains (preview and production)
+  if (/^https:\/\/[a-z0-9-]+\.lovable\.app$/i.test(origin)) {
+    return true;
+  }
+  
+  // Allow localhost for development
+  if (/^http:\/\/localhost:\d+$/.test(origin)) {
+    return true;
+  }
+  
+  return false;
+}
 
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('origin');
+  const allowedOrigin = isAllowedOrigin(origin) ? origin : null;
+  
+  return {
+    "Access-Control-Allow-Origin": allowedOrigin || "",
+    "Access-Control-Allow-Headers":
+      "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+    "Vary": "Origin",
+  };
+}
+
+// Cryptographically secure OTP generation
 function generateOTP(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return String(100000 + (array[0] % 900000)).padStart(6, '0');
+}
+
+// Rate limiting: max 5 requests per email per hour
+// deno-lint-ignore no-explicit-any
+async function checkRateLimit(supabase: any, email: string): Promise<boolean> {
+  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+  
+  const { count, error } = await supabase
+    .from("otp_rate_limits")
+    .select("*", { count: "exact", head: true })
+    .eq("email", email.toLowerCase())
+    .eq("action_type", "send")
+    .gte("created_at", oneHourAgo);
+  
+  if (error) {
+    console.error("Rate limit check error:", error);
+    return true; // Allow on error to not block legitimate users
+  }
+  
+  return (count || 0) < 5;
+}
+
+// deno-lint-ignore no-explicit-any
+async function recordRateLimit(supabase: any, email: string): Promise<void> {
+  await supabase
+    .from("otp_rate_limits")
+    .insert({
+      email: email.toLowerCase(),
+      action_type: "send",
+    });
 }
 
 serve(async (req) => {
+  const corsHeaders = getCorsHeaders(req);
+  
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -35,9 +93,43 @@ serve(async (req) => {
       throw new Error("Email is required");
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email) || email.length > 255) {
+      return new Response(
+        JSON.stringify({ success: false, error: "Invalid email format" }),
+        {
+          status: 400,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
-    // Generate 6-digit OTP
+    // Opportunistic cleanup of expired records
+    await supabase.rpc('cleanup_expired_otp_codes');
+    await supabase.rpc('cleanup_otp_rate_limits');
+
+    // Check rate limit
+    const withinRateLimit = await checkRateLimit(supabase, email);
+    if (!withinRateLimit) {
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: "Too many requests. Please try again later." 
+        }),
+        {
+          status: 429,
+          headers: { "Content-Type": "application/json", ...corsHeaders },
+        }
+      );
+    }
+
+    // Record this request for rate limiting
+    await recordRateLimit(supabase, email);
+
+    // Generate cryptographically secure 6-digit OTP
     const code = generateOTP();
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
@@ -126,6 +218,7 @@ serve(async (req) => {
     );
   } catch (error: unknown) {
     console.error("Error in send-otp function:", error);
+    const corsHeaders = getCorsHeaders(req);
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ success: false, error: errorMessage }),

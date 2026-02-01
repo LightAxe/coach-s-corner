@@ -28,8 +28,12 @@ import {
 import { useToast } from '@/hooks/use-toast';
 
 const addAthleteSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
+  firstName: z.string()
+    .min(1, 'First name is required')
+    .max(50, 'First name too long'),
+  lastName: z.string()
+    .min(1, 'Last name is required')
+    .max(50, 'Last name too long'),
 });
 
 type AddAthleteFormData = z.infer<typeof addAthleteSchema>;

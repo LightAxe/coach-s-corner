@@ -145,9 +145,10 @@ export function AddOffseasonResultDialog({ open, onOpenChange }: AddOffseasonRes
             <Textarea
               id="notes"
               value={notes}
-              onChange={e => setNotes(e.target.value)}
+              onChange={e => setNotes(e.target.value.slice(0, 500))}
               placeholder="e.g., Meet name, conditions..."
               rows={2}
+              maxLength={500}
             />
           </div>
 

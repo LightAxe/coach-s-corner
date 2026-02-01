@@ -51,10 +51,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "announcements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "announcements_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "announcements_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -88,6 +102,7 @@ export type Database = {
           expires_at: string
           id: string
           used: boolean
+          verification_attempts: number | null
         }
         Insert: {
           code: string
@@ -96,6 +111,7 @@ export type Database = {
           expires_at: string
           id?: string
           used?: boolean
+          verification_attempts?: number | null
         }
         Update: {
           code?: string
@@ -104,6 +120,28 @@ export type Database = {
           expires_at?: string
           id?: string
           used?: boolean
+          verification_attempts?: number | null
+        }
+        Relationships: []
+      }
+      otp_rate_limits: {
+        Row: {
+          action_type: string
+          created_at: string
+          email: string
+          id: string
+        }
+        Insert: {
+          action_type: string
+          created_at?: string
+          email: string
+          id?: string
+        }
+        Update: {
+          action_type?: string
+          created_at?: string
+          email?: string
+          id?: string
         }
         Relationships: []
       }
@@ -135,10 +173,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "parent_athlete_links_athlete_id_fkey"
+            columns: ["athlete_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "parent_athlete_links_parent_id_fkey"
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "parent_athlete_links_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -222,6 +274,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "race_results_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "race_results_distance_id_fkey"
             columns: ["distance_id"]
             isOneToOne: false
@@ -302,6 +361,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "races_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "races_distance_id_fkey"
             columns: ["distance_id"]
             isOneToOne: false
@@ -320,6 +386,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "races_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -373,6 +446,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "scheduled_workouts_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "scheduled_workouts_season_id_fkey"
             columns: ["season_id"]
             isOneToOne: false
@@ -384,6 +464,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "scheduled_workouts_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_secure"
             referencedColumns: ["id"]
           },
           {
@@ -429,10 +516,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "seasons_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "seasons_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seasons_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -477,10 +578,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "team_athletes_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "team_athletes_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_athletes_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
           {
@@ -495,6 +610,13 @@ export type Database = {
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_athletes_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -530,10 +652,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "team_memberships_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "team_memberships_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "team_memberships_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -569,6 +705,13 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -637,10 +780,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workout_logs_logged_by_fkey"
+            columns: ["logged_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workout_logs_profile_id_fkey"
             columns: ["profile_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "workout_logs_profile_id_fkey"
+            columns: ["profile_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
           {
@@ -705,21 +862,110 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "workout_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "workout_templates_team_id_fkey"
             columns: ["team_id"]
             isOneToOne: false
             referencedRelation: "teams"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "workout_templates_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
     }
     Views: {
-      [_ in never]: never
+      profiles_secure: {
+        Row: {
+          created_at: string | null
+          email: string | null
+          first_name: string | null
+          id: string | null
+          last_name: string | null
+          phone: string | null
+          role: Database["public"]["Enums"]["user_role"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email?: never
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          phone?: never
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: never
+          first_name?: string | null
+          id?: string | null
+          last_name?: string | null
+          phone?: never
+          role?: Database["public"]["Enums"]["user_role"] | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      teams_secure: {
+        Row: {
+          coach_invite_code: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string | null
+          join_code: string | null
+          name: string | null
+        }
+        Insert: {
+          coach_invite_code?: never
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          join_code?: never
+          name?: string | null
+        }
+        Update: {
+          coach_invite_code?: never
+          created_at?: string | null
+          created_by?: string | null
+          id?: string | null
+          join_code?: never
+          name?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teams_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "teams_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       can_view_athlete: { Args: { _athlete_id: string }; Returns: boolean }
       cleanup_expired_otp_codes: { Args: never; Returns: undefined }
+      cleanup_otp_rate_limits: { Args: never; Returns: undefined }
       generate_coach_invite_code: {
         Args: { _team_id: string }
         Returns: string
@@ -740,6 +986,7 @@ export type Database = {
         Args: { _profile_id: string; _team_id: string }
         Returns: boolean
       }
+      is_team_coach_by_uid: { Args: { _team_id: string }; Returns: boolean }
       is_team_member: {
         Args: { _profile_id: string; _team_id: string }
         Returns: boolean

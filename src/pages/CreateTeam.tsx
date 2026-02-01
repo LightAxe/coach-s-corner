@@ -13,18 +13,21 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 
 const createTeamSchema = z.object({
-  name: z.string().min(2, 'Team name must be at least 2 characters'),
+  name: z.string()
+    .min(2, 'Team name must be at least 2 characters')
+    .max(100, 'Team name too long'),
 });
 
 type CreateTeamFormData = z.infer<typeof createTeamSchema>;
 
+// Cryptographically secure join code generation
 function generateJoinCode(): string {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-  let code = '';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
+  const array = new Uint8Array(3);
+  crypto.getRandomValues(array);
+  return Array.from(array)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('')
+    .toUpperCase();
 }
 
 export default function CreateTeam() {
