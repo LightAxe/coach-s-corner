@@ -15,10 +15,20 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 
 const signupSchema = z.object({
-  firstName: z.string().min(1, 'First name is required'),
-  lastName: z.string().min(1, 'Last name is required'),
-  email: z.string().email('Please enter a valid email'),
-  phone: z.string().optional(),
+  firstName: z.string()
+    .min(1, 'First name is required')
+    .max(50, 'First name too long'),
+  lastName: z.string()
+    .min(1, 'Last name is required')
+    .max(50, 'Last name too long'),
+  email: z.string()
+    .email('Please enter a valid email')
+    .max(255, 'Email too long'),
+  phone: z.string()
+    .regex(/^[\d\s\-\(\)\+]*$/, 'Invalid phone format')
+    .max(20, 'Phone number too long')
+    .optional()
+    .or(z.literal('')),
   role: z.enum(['coach', 'athlete', 'parent'], {
     required_error: 'Please select a role',
   }),

@@ -34,14 +34,23 @@ import { useActiveSeason } from '@/hooks/useSeasons';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
+// Safe URL schema that only allows http/https schemes
+const safeUrlSchema = z.string()
+  .refine(
+    val => !val || /^https?:\/\//i.test(val),
+    { message: 'URL must start with http:// or https://' }
+  )
+  .optional()
+  .or(z.literal(''));
+
 const formSchema = z.object({
-  name: z.string().min(1, 'Race name is required'),
+  name: z.string().min(1, 'Race name is required').max(100, 'Race name too long'),
   race_date: z.date(),
-  location: z.string().optional(),
-  details: z.string().optional(),
-  transportation_info: z.string().optional(),
-  map_link: z.string().url().optional().or(z.literal('')),
-  results_link: z.string().url().optional().or(z.literal('')),
+  location: z.string().max(200, 'Location too long').optional(),
+  details: z.string().max(2000, 'Details too long').optional(),
+  transportation_info: z.string().max(500, 'Transportation info too long').optional(),
+  map_link: safeUrlSchema,
+  results_link: safeUrlSchema,
 });
 
 type FormValues = z.infer<typeof formSchema>;
