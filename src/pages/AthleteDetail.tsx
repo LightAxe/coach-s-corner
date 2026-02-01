@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { useParams, Navigate, Link } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, User, Calendar, ClipboardList, CheckCircle, Users } from 'lucide-react';
+import { useParams, Navigate, Link, useNavigate } from 'react-router-dom';
+import { ArrowLeft, Mail, Phone, User, Calendar, ClipboardList, CheckCircle, Users, Pencil, UserMinus } from 'lucide-react';
 import { format, parseISO, subDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,17 +14,22 @@ import { useScheduledWorkoutsRange } from '@/hooks/useDashboardData';
 import { useTeamAthleteWorkoutLogs } from '@/hooks/useWorkoutLogs';
 import { WorkoutLogDialog } from '@/components/workouts/WorkoutLogDialog';
 import { GenerateParentCodeDialog } from '@/components/athletes/GenerateParentCodeDialog';
+import { EditAthleteDialog } from '@/components/athletes/EditAthleteDialog';
+import { RemoveAthleteDialog } from '@/components/athletes/RemoveAthleteDialog';
 import { cn } from '@/lib/utils';
-import { getWorkoutTypeBadgeClass, type ScheduledWorkout } from '@/lib/types';
+import { getWorkoutTypeBadgeClass, type ScheduledWorkout, type TeamAthleteWithProfile } from '@/lib/types';
 
 export default function AthleteDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { currentTeam, isCoach } = useAuth();
   const { data: athletes = [], isLoading } = useTeamAthletes(currentTeam?.id);
   
   const [selectedWorkout, setSelectedWorkout] = useState<ScheduledWorkout | null>(null);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
   const [parentCodeDialogOpen, setParentCodeDialogOpen] = useState(false);
+  const [editAthleteOpen, setEditAthleteOpen] = useState(false);
+  const [removeAthleteOpen, setRemoveAthleteOpen] = useState(false);
 
   // Get recent workouts for the team (last 14 days)
   const { data: recentWorkouts = [], isLoading: workoutsLoading } = useScheduledWorkoutsRange(
@@ -119,16 +124,36 @@ export default function AthleteDetail() {
                   Added {format(new Date(athlete.created_at), 'MMM d, yyyy')}
                 </p>
               </div>
-              {/* Parent Code Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setParentCodeDialogOpen(true)}
-                className="gap-2"
-              >
-                <Users className="h-4 w-4" />
-                Parent Access
-              </Button>
+              {/* Action Buttons */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditAthleteOpen(true)}
+                  className="gap-2"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setParentCodeDialogOpen(true)}
+                  className="gap-2"
+                >
+                  <Users className="h-4 w-4" />
+                  Parent Access
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setRemoveAthleteOpen(true)}
+                  className="gap-2 text-destructive hover:text-destructive"
+                >
+                  <UserMinus className="h-4 w-4" />
+                  Remove
+                </Button>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -249,6 +274,21 @@ export default function AthleteDetail() {
         onOpenChange={setParentCodeDialogOpen}
         teamAthleteId={id!}
         athleteName={athleteName}
+      />
+
+      <EditAthleteDialog
+        open={editAthleteOpen}
+        onOpenChange={setEditAthleteOpen}
+        athlete={athlete as TeamAthleteWithProfile}
+        teamId={currentTeam?.id || ''}
+      />
+
+      <RemoveAthleteDialog
+        open={removeAthleteOpen}
+        onOpenChange={setRemoveAthleteOpen}
+        athlete={athlete as TeamAthleteWithProfile}
+        teamId={currentTeam?.id || ''}
+        onRemoved={() => navigate('/athletes')}
       />
     </AppLayout>
   );

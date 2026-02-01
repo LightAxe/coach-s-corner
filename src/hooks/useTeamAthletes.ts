@@ -107,6 +107,33 @@ export function useLinkTeamAthlete() {
   });
 }
 
+// Update a team athlete's info
+export function useUpdateTeamAthlete() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, team_id, first_name, last_name }: { 
+      id: string;
+      team_id: string;
+      first_name: string;
+      last_name: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('team_athletes')
+        .update({ first_name, last_name })
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ 
+        queryKey: ['team-athletes', variables.team_id] 
+      });
+    },
+  });
+}
+
 // Delete a team athlete
 export function useDeleteTeamAthlete() {
   const queryClient = useQueryClient();

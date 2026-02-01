@@ -1,0 +1,252 @@
+import { useEffect } from 'react';
+import { format, parseISO } from 'date-fns';
+import { Calendar as CalendarIcon, Pencil } from 'lucide-react';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from '@/components/ui/form';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Calendar } from '@/components/ui/calendar';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import { useUpdateScheduledWorkout } from '@/hooks/useScheduledWorkouts';
+import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
+import type { WorkoutType, ScheduledWorkout } from '@/lib/types';
+import { Constants } from '@/integrations/supabase/types';
+
+const workoutTypes = Constants.public.Enums.workout_type;
+
+const formSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  type: z.enum(workoutTypes as unknown as [string, ...string[]]),
+  description: z.string().optional(),
+  athlete_notes: z.string().optional(),
+  scheduled_date: z.date(),
+});
+
+type FormValues = z.infer<typeof formSchema>;
+
+interface EditWorkoutDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  workout: ScheduledWorkout | null;
+  teamId: string;
+}
+
+export function EditWorkoutDialog({ open, onOpenChange, workout, teamId }: EditWorkoutDialogProps) {
+  const updateWorkout = useUpdateScheduledWorkout();
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: {
+      title: '',
+      type: 'easy',
+      description: '',
+      athlete_notes: '',
+      scheduled_date: new Date(),
+    },
+  });
+
+  // Reset form when workout changes
+  useEffect(() => {
+    if (workout && open) {
+      form.reset({
+        title: workout.title,
+        type: workout.type,
+        description: workout.description || '',
+        athlete_notes: workout.athlete_notes || '',
+        scheduled_date: parseISO(workout.scheduled_date),
+      });
+    }
+  }, [workout, open, form]);
+
+  const onSubmit = async (values: FormValues) => {
+    if (!workout) return;
+
+    try {
+      await updateWorkout.mutateAsync({
+        id: workout.id,
+        team_id: teamId,
+        title: values.title,
+        type: values.type as WorkoutType,
+        description: values.description || null,
+        athlete_notes: values.athlete_notes || null,
+        scheduled_date: format(values.scheduled_date, 'yyyy-MM-dd'),
+      });
+      
+      toast.success('Workout updated');
+      onOpenChange(false);
+    } catch (error) {
+      toast.error('Failed to update workout');
+    }
+  };
+
+  if (!workout) return null;
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-lg">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="h-5 w-5" />
+            Edit Workout
+          </DialogTitle>
+        </DialogHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <FormField
+              control={form.control}
+              name="scheduled_date"
+              render={({ field }) => (
+                <FormItem className="flex flex-col">
+                  <FormLabel>Date</FormLabel>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <FormControl>
+                        <Button
+                          variant="outline"
+                          className={cn(
+                            'w-full pl-3 text-left font-normal',
+                            !field.value && 'text-muted-foreground'
+                          )}
+                        >
+                          {field.value ? (
+                            format(field.value, 'PPP')
+                          ) : (
+                            <span>Pick a date</span>
+                          )}
+                          <CalendarIcon className="ml-auto h-4 w-4 opacity-50" />
+                        </Button>
+                      </FormControl>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={field.value}
+                        onSelect={field.onChange}
+                        initialFocus
+                      />
+                    </PopoverContent>
+                  </Popover>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="title"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Title</FormLabel>
+                  <FormControl>
+                    <Input placeholder="e.g., Morning Long Run" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Type</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {workoutTypes.map((type) => (
+                        <SelectItem key={type} value={type} className="capitalize">
+                          {type}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="Workout details..."
+                      className="min-h-[80px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="athlete_notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Athlete Scaling Notes</FormLabel>
+                  <FormControl>
+                    <Textarea 
+                      placeholder="e.g., Varsity: 8mi, JV: 6mi, Freshmen: 4mi"
+                      className="min-h-[60px]"
+                      {...field} 
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={updateWorkout.isPending}>
+                Save Changes
+              </Button>
+            </DialogFooter>
+          </form>
+        </Form>
+      </DialogContent>
+    </Dialog>
+  );
+}
