@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import {
@@ -8,8 +9,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { User, Shield, Users, LogOut } from 'lucide-react';
+import { User, Shield, Users, LogOut, Download } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { ExportDataDialog } from './ExportDataDialog';
 
 const roleIcons = {
   coach: Shield,
@@ -20,7 +22,8 @@ const roleIcons = {
 export function RoleSwitcher() {
   const { profile, signOut } = useAuth();
   const navigate = useNavigate();
-  
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+
   if (!profile) return null;
 
   const Icon = roleIcons[profile.role] || User;
@@ -49,11 +52,17 @@ export function RoleSwitcher() {
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => setExportDialogOpen(true)}>
+          <Download className="h-4 w-4 mr-2" />
+          Download Your Data
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleSignOut} className="text-destructive">
           <LogOut className="h-4 w-4 mr-2" />
           Sign out
         </DropdownMenuItem>
       </DropdownMenuContent>
+      <ExportDataDialog open={exportDialogOpen} onOpenChange={setExportDialogOpen} />
     </DropdownMenu>
   );
 }
