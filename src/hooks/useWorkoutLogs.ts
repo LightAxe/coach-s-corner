@@ -1,9 +1,24 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import type { WorkoutLog, CompletionStatus } from '@/lib/types';
+import type { WorkoutLog, CompletionStatus, WorkoutType } from '@/lib/types';
 
 export interface CreateWorkoutLogData {
   scheduled_workout_id: string;
+  profile_id?: string | null;
+  team_athlete_id?: string | null;
+  logged_by?: string | null;
+  completed: boolean;
+  completion_status: CompletionStatus;
+  effort_level?: number | null;
+  how_felt?: string | null;
+  notes?: string | null;
+  distance_value?: number | null;
+  distance_unit?: 'miles' | 'km' | null;
+}
+
+export interface PersonalWorkoutData {
+  workout_date: string;
+  workout_type: WorkoutType;
   profile_id?: string | null;
   team_athlete_id?: string | null;
   logged_by?: string | null;
@@ -216,6 +231,70 @@ export function useDeleteWorkoutLog() {
       queryClient.invalidateQueries({ queryKey: ['workout-log'] });
       queryClient.invalidateQueries({ queryKey: ['athlete-workout-logs'] });
       queryClient.invalidateQueries({ queryKey: ['team-athlete-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['personal-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['acwr'] });
+      queryClient.invalidateQueries({ queryKey: ['team-athlete-stats'] });
     },
+  });
+}
+
+// Create a personal workout (not tied to a scheduled workout)
+export function useCreatePersonalWorkout() {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: async (data: PersonalWorkoutData) => {
+      const { data: log, error } = await supabase
+        .from('workout_logs')
+        .insert({
+          scheduled_workout_id: null,
+          workout_date: data.workout_date,
+          workout_type: data.workout_type,
+          profile_id: data.profile_id,
+          team_athlete_id: data.team_athlete_id,
+          logged_by: data.logged_by,
+          completed: data.completed,
+          completion_status: data.completion_status,
+          effort_level: data.effort_level,
+          how_felt: data.how_felt,
+          notes: data.notes,
+          distance_value: data.distance_value,
+          distance_unit: data.distance_unit,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      return log;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['athlete-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['team-athlete-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['personal-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['acwr'] });
+      queryClient.invalidateQueries({ queryKey: ['team-athlete-stats'] });
+    },
+  });
+}
+
+// Fetch personal workout logs (not tied to scheduled workouts)
+export function usePersonalWorkoutLogs(profileId?: string) {
+  return useQuery({
+    queryKey: ['personal-workout-logs', profileId],
+    queryFn: async () => {
+      if (!profileId) return [];
+      
+      const { data, error } = await supabase
+        .from('workout_logs')
+        .select('*')
+        .eq('profile_id', profileId)
+        .is('scheduled_workout_id', null)
+        .not('workout_date', 'is', null)
+        .order('workout_date', { ascending: false });
+      
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!profileId,
   });
 }

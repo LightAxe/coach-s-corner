@@ -41,7 +41,8 @@ export function useTeamAthleteStats(teamAthleteIds: string[]) {
       const startDate = format(subDays(new Date(), 35), 'yyyy-MM-dd');
       const weekAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd');
 
-      const { data: logs, error } = await supabase
+      // Fetch scheduled workout logs
+      const { data: scheduledLogs, error: scheduledError } = await supabase
         .from('workout_logs')
         .select(`
           id,
@@ -54,23 +55,46 @@ export function useTeamAthleteStats(teamAthleteIds: string[]) {
           )
         `)
         .in('team_athlete_id', teamAthleteIds)
+        .not('scheduled_workout_id', 'is', null)
         .gte('scheduled_workouts.scheduled_date', startDate)
         .order('scheduled_workouts(scheduled_date)', { ascending: true });
 
-      if (error) throw error;
+      if (scheduledError) throw scheduledError;
+
+      // Fetch personal workout logs (unscheduled)
+      const { data: personalLogs, error: personalError } = await supabase
+        .from('workout_logs')
+        .select(`
+          id,
+          team_athlete_id,
+          distance_value,
+          distance_unit,
+          effort_level,
+          workout_date
+        `)
+        .in('team_athlete_id', teamAthleteIds)
+        .is('scheduled_workout_id', null)
+        .not('workout_date', 'is', null)
+        .gte('workout_date', startDate)
+        .order('workout_date', { ascending: true });
+
+      if (personalError) throw personalError;
 
       // Build stats for each athlete
       const statsMap: TeamAthleteStatsMap = {};
       const today = startOfDay(new Date());
 
       for (const athleteId of teamAthleteIds) {
-        const athleteLogs = (logs || []).filter(l => l.team_athlete_id === athleteId);
+        // Process scheduled logs for this athlete
+        const athleteScheduledLogs = (scheduledLogs || []).filter(l => l.team_athlete_id === athleteId);
+        const athletePersonalLogs = (personalLogs || []).filter(l => l.team_athlete_id === athleteId);
 
         // Calculate weekly miles
         let weeklyMiles = 0;
         const dailyLoads: Map<string, number> = new Map();
 
-        for (const log of athleteLogs) {
+        // Process scheduled workout logs
+        for (const log of athleteScheduledLogs) {
           const workout = log.scheduled_workouts as { scheduled_date: string } | null;
           if (!workout?.scheduled_date) continue;
 
@@ -90,6 +114,27 @@ export function useTeamAthleteStats(teamAthleteIds: string[]) {
           }
 
           // Training load for ACWR
+          const load = rpe * distanceInMiles;
+          dailyLoads.set(date, (dailyLoads.get(date) || 0) + load);
+        }
+
+        // Process personal workout logs
+        for (const log of athletePersonalLogs) {
+          const date = log.workout_date;
+          if (!date) continue;
+
+          const distance = log.distance_value || 0;
+          const rpe = log.effort_level || 5;
+
+          let distanceInMiles = distance;
+          if (log.distance_unit === 'km') {
+            distanceInMiles = distance * 0.621371;
+          }
+
+          if (date >= weekAgo) {
+            weeklyMiles += distanceInMiles;
+          }
+
           const load = rpe * distanceInMiles;
           dailyLoads.set(date, (dailyLoads.get(date) || 0) + load);
         }

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CheckCircle, ClipboardList } from 'lucide-react';
+import { CheckCircle, ClipboardList, Plus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -9,6 +9,7 @@ import { ScheduledWorkout, getWorkoutTypeBadgeClass } from '@/lib/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { useWorkoutLogForProfile } from '@/hooks/useWorkoutLogs';
 import { WorkoutLogDialog } from '@/components/workouts/WorkoutLogDialog';
+import { PersonalWorkoutDialog } from '@/components/workouts/PersonalWorkoutDialog';
 import { getFeelingDisplay } from '@/components/workouts/FeelingSelector';
 
 interface TodayWorkoutProps {
@@ -18,6 +19,7 @@ interface TodayWorkoutProps {
 
 export function TodayWorkout({ workout, isLoading }: TodayWorkoutProps) {
   const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [personalWorkoutOpen, setPersonalWorkoutOpen] = useState(false);
   const { user, isCoach } = useAuth();
   
   const { data: existingLog, isLoading: logLoading } = useWorkoutLogForProfile(
@@ -47,13 +49,26 @@ export function TodayWorkout({ workout, isLoading }: TodayWorkoutProps) {
 
   if (!workout) {
     return (
-      <Card className="border-2 border-dashed border-border">
-        <CardContent className="flex flex-col items-center justify-center py-12">
-          <p className="text-muted-foreground text-center">
-            No workout scheduled for today
-          </p>
-        </CardContent>
-      </Card>
+      <>
+        <Card className="border-2 border-dashed border-border">
+          <CardContent className="flex flex-col items-center justify-center py-12 gap-4">
+            <p className="text-muted-foreground text-center">
+              No workout scheduled for today
+            </p>
+            {!isCoach && (
+              <Button variant="outline" onClick={() => setPersonalWorkoutOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Log Personal Workout
+              </Button>
+            )}
+          </CardContent>
+        </Card>
+        
+        <PersonalWorkoutDialog
+          open={personalWorkoutOpen}
+          onOpenChange={setPersonalWorkoutOpen}
+        />
+      </>
     );
   }
 
@@ -128,14 +143,23 @@ export function TodayWorkout({ workout, isLoading }: TodayWorkoutProps) {
                   </div>
                 </div>
               ) : (
-                <Button 
-                  className="w-full gap-2" 
-                  onClick={() => setLogDialogOpen(true)}
-                  disabled={logLoading}
-                >
-                  <ClipboardList className="h-4 w-4" />
-                  Log Workout
-                </Button>
+                <div className="flex gap-2">
+                  <Button 
+                    className="flex-1 gap-2" 
+                    onClick={() => setLogDialogOpen(true)}
+                    disabled={logLoading}
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    Log Workout
+                  </Button>
+                  <Button 
+                    variant="outline"
+                    onClick={() => setPersonalWorkoutOpen(true)}
+                    title="Log a different workout"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </Button>
+                </div>
               )}
             </div>
           )}
@@ -146,6 +170,11 @@ export function TodayWorkout({ workout, isLoading }: TodayWorkoutProps) {
         open={logDialogOpen}
         onOpenChange={setLogDialogOpen}
         workout={workout}
+      />
+      
+      <PersonalWorkoutDialog
+        open={personalWorkoutOpen}
+        onOpenChange={setPersonalWorkoutOpen}
       />
     </>
   );
