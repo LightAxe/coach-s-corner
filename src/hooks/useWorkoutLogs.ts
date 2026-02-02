@@ -185,6 +185,7 @@ export function useCreateWorkoutLog() {
       queryClient.invalidateQueries({ queryKey: ['workout-log', variables.scheduled_workout_id] });
       queryClient.invalidateQueries({ queryKey: ['athlete-workout-logs'] });
       queryClient.invalidateQueries({ queryKey: ['team-athlete-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['team-athlete-all-logs'] });
     },
   });
 }
@@ -210,6 +211,7 @@ export function useUpdateWorkoutLog() {
       queryClient.invalidateQueries({ queryKey: ['workout-log'] });
       queryClient.invalidateQueries({ queryKey: ['athlete-workout-logs'] });
       queryClient.invalidateQueries({ queryKey: ['team-athlete-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['team-athlete-all-logs'] });
     },
   });
 }
@@ -231,6 +233,7 @@ export function useDeleteWorkoutLog() {
       queryClient.invalidateQueries({ queryKey: ['workout-log'] });
       queryClient.invalidateQueries({ queryKey: ['athlete-workout-logs'] });
       queryClient.invalidateQueries({ queryKey: ['team-athlete-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['team-athlete-all-logs'] });
       queryClient.invalidateQueries({ queryKey: ['personal-workout-logs'] });
       queryClient.invalidateQueries({ queryKey: ['acwr'] });
       queryClient.invalidateQueries({ queryKey: ['team-athlete-stats'] });
@@ -270,6 +273,7 @@ export function useCreatePersonalWorkout() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['athlete-workout-logs'] });
       queryClient.invalidateQueries({ queryKey: ['team-athlete-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['team-athlete-all-logs'] });
       queryClient.invalidateQueries({ queryKey: ['personal-workout-logs'] });
       queryClient.invalidateQueries({ queryKey: ['acwr'] });
       queryClient.invalidateQueries({ queryKey: ['team-athlete-stats'] });
@@ -314,6 +318,35 @@ export function useTeamAthletePersonalWorkoutLogs(teamAthleteId?: string) {
         .not('workout_date', 'is', null)
         .order('workout_date', { ascending: false })
         .limit(20);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamAthleteId,
+  });
+}
+
+// Fetch all workout logs for a team athlete (unified training history)
+export function useTeamAthleteAllWorkoutLogs(teamAthleteId?: string) {
+  return useQuery({
+    queryKey: ['team-athlete-all-logs', teamAthleteId],
+    queryFn: async () => {
+      if (!teamAthleteId) return [];
+
+      const { data, error } = await supabase
+        .from('workout_logs')
+        .select(`
+          *,
+          scheduled_workouts (
+            id,
+            title,
+            type,
+            description,
+            scheduled_date
+          )
+        `)
+        .eq('team_athlete_id', teamAthleteId)
+        .limit(50);
 
       if (error) throw error;
       return data;

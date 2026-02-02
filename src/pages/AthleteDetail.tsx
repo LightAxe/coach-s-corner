@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useParams, Navigate, Link, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Mail, Phone, User, Calendar, ClipboardList, CheckCircle, Users, Pencil, UserMinus } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, User, Calendar, ClipboardList, CheckCircle, Users, Pencil, UserMinus, Plus } from 'lucide-react';
 import { format, parseISO, subDays } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,11 +13,12 @@ import { useTeamAthletes } from '@/hooks/useTeamAthletes';
 import { useScheduledWorkoutsRange } from '@/hooks/useDashboardData';
 import { useTeamAthleteWorkoutLogs } from '@/hooks/useWorkoutLogs';
 import { WorkoutLogDialog } from '@/components/workouts/WorkoutLogDialog';
+import { PersonalWorkoutDialog } from '@/components/workouts/PersonalWorkoutDialog';
 import { GenerateParentCodeDialog } from '@/components/athletes/GenerateParentCodeDialog';
 import { EditAthleteDialog } from '@/components/athletes/EditAthleteDialog';
 import { RemoveAthleteDialog } from '@/components/athletes/RemoveAthleteDialog';
 import { ACWRIndicator } from '@/components/athletes/ACWRIndicator';
-import { PersonalWorkoutsList } from '@/components/athletes/PersonalWorkoutsList';
+import { AthleteWorkoutHistory } from '@/components/athletes/AthleteWorkoutHistory';
 import { cn } from '@/lib/utils';
 import { getWorkoutTypeBadgeClass, type ScheduledWorkout, type TeamAthleteWithProfile } from '@/lib/types';
 
@@ -29,6 +30,7 @@ export default function AthleteDetail() {
   
   const [selectedWorkout, setSelectedWorkout] = useState<ScheduledWorkout | null>(null);
   const [logDialogOpen, setLogDialogOpen] = useState(false);
+  const [personalWorkoutDialogOpen, setPersonalWorkoutDialogOpen] = useState(false);
   const [parentCodeDialogOpen, setParentCodeDialogOpen] = useState(false);
   const [editAthleteOpen, setEditAthleteOpen] = useState(false);
   const [removeAthleteOpen, setRemoveAthleteOpen] = useState(false);
@@ -186,9 +188,6 @@ export default function AthleteDetail() {
         {/* ACWR Training Load Indicator */}
         <ACWRIndicator teamAthleteId={id!} />
 
-        {/* Personal Workouts (coach visibility) */}
-        <PersonalWorkoutsList teamAthleteId={id!} />
-
         {/* Recent Workouts with Log Ability */}
         <Card>
           <CardHeader>
@@ -267,12 +266,25 @@ export default function AthleteDetail() {
             )}
           </CardContent>
         </Card>
+
+        {/* Training History - unified view of all logged workouts */}
+        <AthleteWorkoutHistory
+          teamAthleteId={id!}
+          onLogPersonalWorkout={() => setPersonalWorkoutDialogOpen(true)}
+        />
       </div>
 
       <WorkoutLogDialog
         open={logDialogOpen}
         onOpenChange={setLogDialogOpen}
         workout={selectedWorkout}
+        teamAthleteId={id}
+        athleteName={athleteName}
+      />
+
+      <PersonalWorkoutDialog
+        open={personalWorkoutDialogOpen}
+        onOpenChange={setPersonalWorkoutDialogOpen}
         teamAthleteId={id}
         athleteName={athleteName}
       />
