@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Search, Mail, Users, ChevronRight } from 'lucide-react';
-import { Link, Navigate } from 'react-router-dom';
+import { Navigate, useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -21,6 +21,7 @@ import { useTeamAthleteStats } from '@/hooks/useTeamAthleteStats';
 
 export default function Athletes() {
   const [searchQuery, setSearchQuery] = useState('');
+  const navigate = useNavigate();
   const { currentTeam, isCoach } = useAuth();
   const { data: activeSeason } = useActiveSeason(currentTeam?.id);
   const { data: members = [], isLoading: membersLoading } = useTeamMembers(currentTeam?.id);
@@ -194,7 +195,11 @@ export default function Athletes() {
                   const isLinked = !!athlete.profile_id;
 
                   return (
-                    <Card key={athlete.id} className="hover:shadow-sm transition-shadow">
+                    <Card
+                      key={athlete.id}
+                      className="hover:shadow-sm transition-shadow cursor-pointer"
+                      onClick={() => navigate(`/athletes/${athlete.id}`)}
+                    >
                       <CardContent className="p-4">
                         <div className="flex items-center gap-4">
                           <Avatar className="h-12 w-12">
@@ -229,11 +234,7 @@ export default function Athletes() {
                             isLoading={statsLoading}
                           />
 
-                          <Link to={`/athletes/${athlete.id}`}>
-                            <Button variant="ghost" size="icon">
-                              <ChevronRight className="h-5 w-5" />
-                            </Button>
-                          </Link>
+                          <ChevronRight className="h-5 w-5 text-muted-foreground" />
                         </div>
                       </CardContent>
                     </Card>
