@@ -16,6 +16,8 @@ import { usePagination } from '@/hooks/usePagination';
 import { AddAthleteDialog } from '@/components/athletes/AddAthleteDialog';
 import { PendingAccountsSection } from '@/components/athletes/PendingAccountsSection';
 import { PaginationControls } from '@/components/PaginationControls';
+import { AthleteStatsInline } from '@/components/athletes/AthleteStatsInline';
+import { useTeamAthleteStats } from '@/hooks/useTeamAthleteStats';
 
 export default function Athletes() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -23,9 +25,13 @@ export default function Athletes() {
   const { data: activeSeason } = useActiveSeason(currentTeam?.id);
   const { data: members = [], isLoading: membersLoading } = useTeamMembers(currentTeam?.id);
   const { data: teamAthletes = [], isLoading: athletesLoading } = useTeamAthletes(
-    currentTeam?.id, 
+    currentTeam?.id,
     activeSeason?.id
   );
+
+  // Fetch stats for all athletes
+  const athleteIds = useMemo(() => teamAthletes.map(a => a.id), [teamAthletes]);
+  const { data: athleteStats, isLoading: statsLoading } = useTeamAthleteStats(athleteIds);
 
   // Redirect non-coaches
   if (!isCoach) {
@@ -216,6 +222,12 @@ export default function Athletes() {
                               </p>
                             )}
                           </div>
+
+                          <AthleteStatsInline
+                            athleteId={athlete.id}
+                            stats={athleteStats}
+                            isLoading={statsLoading}
+                          />
 
                           <Link to={`/athletes/${athlete.id}`}>
                             <Button variant="ghost" size="icon">
