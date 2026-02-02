@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { format, subDays, startOfDay, endOfDay, isWithinInterval, parseISO } from 'date-fns';
-import { CalendarIcon, BookOpen, Trophy } from 'lucide-react';
+import { CalendarIcon, BookOpen, Trophy, Plus } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -16,6 +16,7 @@ import { usePagination } from '@/hooks/usePagination';
 import { JournalEntry } from '@/components/journal/JournalEntry';
 import { RaceEntry } from '@/components/journal/RaceEntry';
 import { PaginationControls } from '@/components/PaginationControls';
+import { PersonalWorkoutDialog } from '@/components/workouts/PersonalWorkoutDialog';
 
 type DateRange = {
   from: Date | undefined;
@@ -30,13 +31,14 @@ const PRESET_RANGES = [
 ];
 
 export default function TrainingJournal() {
-  const { user } = useAuth();
+  const { user, isCoach } = useAuth();
   const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
     to: new Date(),
   });
   const [activePreset, setActivePreset] = useState<number | null>(30);
   const [activeTab, setActiveTab] = useState<'workouts' | 'races'>('workouts');
+  const [personalWorkoutOpen, setPersonalWorkoutOpen] = useState(false);
 
   const { data: logs, isLoading: logsLoading } = useAthleteWorkoutLogs(user?.id);
   const { data: raceResults, isLoading: racesLoading } = useProfileRaceResults(user?.id);
@@ -192,8 +194,17 @@ export default function TrainingJournal() {
             </p>
           </div>
 
-          {/* Date Range Picker */}
-          <Popover>
+          <div className="flex items-center gap-2">
+            {/* Add Entry Button (athletes only) */}
+            {!isCoach && (
+              <Button onClick={() => setPersonalWorkoutOpen(true)} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Entry
+              </Button>
+            )}
+
+            {/* Date Range Picker */}
+            <Popover>
             <PopoverTrigger asChild>
               <Button variant="outline" className="justify-start text-left font-normal">
                 <CalendarIcon className="mr-2 h-4 w-4" />
@@ -235,6 +246,7 @@ export default function TrainingJournal() {
               />
             </PopoverContent>
           </Popover>
+          </div>
         </div>
 
         {/* Tabs for Workouts and Races */}
@@ -412,6 +424,11 @@ export default function TrainingJournal() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <PersonalWorkoutDialog
+        open={personalWorkoutOpen}
+        onOpenChange={setPersonalWorkoutOpen}
+      />
     </AppLayout>
   );
 }

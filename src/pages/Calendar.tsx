@@ -17,6 +17,7 @@ import { RaceDetailDialog } from '@/components/races/RaceDetailDialog';
 import { WorkoutLogDialog } from '@/components/workouts/WorkoutLogDialog';
 import { WorkoutDetailDialog } from '@/components/workouts/WorkoutDetailDialog';
 import { EditWorkoutDialog } from '@/components/workouts/EditWorkoutDialog';
+import { PersonalWorkoutDialog } from '@/components/workouts/PersonalWorkoutDialog';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -28,6 +29,8 @@ export default function Calendar() {
   const [workoutLogOpen, setWorkoutLogOpen] = useState(false);
   const [workoutDetailOpen, setWorkoutDetailOpen] = useState(false);
   const [editWorkoutOpen, setEditWorkoutOpen] = useState(false);
+  const [personalWorkoutOpen, setPersonalWorkoutOpen] = useState(false);
+  const [personalWorkoutDate, setPersonalWorkoutDate] = useState<Date | undefined>(undefined);
   
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
@@ -94,6 +97,11 @@ export default function Calendar() {
 
   const handleEditWorkout = () => {
     setEditWorkoutOpen(true);
+  };
+
+  const handleAddPersonalWorkout = (date: Date) => {
+    setPersonalWorkoutDate(date);
+    setPersonalWorkoutOpen(true);
   };
 
   return (
@@ -208,8 +216,16 @@ export default function Calendar() {
                       </Button>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-center h-14 lg:h-20 text-muted-foreground text-sm">
-                      Rest day
+                    <div
+                      className={cn(
+                        "flex flex-col items-center justify-center h-14 lg:h-20 text-muted-foreground text-sm",
+                        "border-2 border-dashed border-transparent rounded-lg transition-colors",
+                        "hover:border-primary/30 hover:text-primary/70 cursor-pointer"
+                      )}
+                      onClick={() => handleAddPersonalWorkout(day)}
+                    >
+                      <span>Rest day</span>
+                      <span className="text-xs mt-1 opacity-0 group-hover:opacity-100">+ Add workout</span>
                     </div>
                   )}
                 </CardContent>
@@ -281,6 +297,12 @@ export default function Calendar() {
           onOpenChange={setEditWorkoutOpen}
           workout={selectedWorkout}
           teamId={currentTeam?.id || ''}
+        />
+
+        <PersonalWorkoutDialog
+          open={personalWorkoutOpen}
+          onOpenChange={setPersonalWorkoutOpen}
+          initialDate={personalWorkoutDate}
         />
       </div>
     </AppLayout>
