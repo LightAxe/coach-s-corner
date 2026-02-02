@@ -69,37 +69,33 @@ Athletes can now log personal workouts that aren't on the coach's schedule. This
 
 ---
 
-# Future Features (Require Additional Work)
+# ✅ Coach Visibility for Personal Workouts - IMPLEMENTED
 
-## Coach Visibility for Personal Workouts
+## Overview
+Coaches can now see what personal/unscheduled workouts athletes have logged directly on the Athlete Detail page. This provides context for ACWR changes and helps coaches understand total training load.
 
-### Problem
-Coaches can see personal workouts reflected in ACWR calculations and weekly mileage stats, but they have no direct visibility into what personal workouts athletes have logged. This makes it hard to:
-- Understand why an athlete's ACWR changed unexpectedly
-- See if athletes are doing extra work outside the training plan
-- Have informed conversations about total training load
+## Implementation (Option A - Personal Workouts Section)
+Added a "Personal Workouts" card on the Athlete Detail page between the ACWR Indicator and Recent Workouts sections.
 
-### Proposed Solution
-
-**Option A: Personal Workouts Tab on Athlete Detail Page**
-- Add a "Personal Workouts" section or tab on the athlete detail page
-- Shows list of personal workouts logged by the athlete
+### Features
+- Shows list of personal workouts (up to 20 most recent)
+- Each entry displays: date, workout type badge, distance, RPE, feeling emoji
+- Notes shown in italics when present
+- Expandable "Show more/less" when more than 5 workouts
+- Empty state message when no personal workouts exist
+- Loading skeleton while data fetches
 - Read-only for coaches (athletes own their personal data)
 
-**Option B: Visual Indicator on Calendar**
-- Show personal workouts on the calendar with a different style (e.g., dotted border, different icon)
-- Coaches see "Personal: 5mi easy" on days where athletes logged personal workouts
-- Requires fetching personal workout logs for the team
+### Files Created
+- `src/components/athletes/PersonalWorkoutsList.tsx` - New component for displaying personal workouts
 
-**Option C: Activity Feed**
-- Add an activity feed showing recent personal workout submissions
-- "John logged a personal workout: 6mi easy run on Jan 15"
-- Could be on coach dashboard or athlete detail page
-
-### Recommended Approach
-Option A is simplest - add a collapsible section on AthleteDetail page that shows personal workouts. This keeps the data in context with the athlete's profile.
+### Files Modified
+- `src/hooks/useWorkoutLogs.ts` - Added `useTeamAthletePersonalWorkoutLogs` hook
+- `src/pages/AthleteDetail.tsx` - Integrated PersonalWorkoutsList component
 
 ---
+
+# Future Features (Require Additional Work)
 
 ## Edit/Delete Personal Workouts
 

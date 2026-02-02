@@ -283,7 +283,7 @@ export function usePersonalWorkoutLogs(profileId?: string) {
     queryKey: ['personal-workout-logs', profileId],
     queryFn: async () => {
       if (!profileId) return [];
-      
+
       const { data, error } = await supabase
         .from('workout_logs')
         .select('*')
@@ -291,10 +291,33 @@ export function usePersonalWorkoutLogs(profileId?: string) {
         .is('scheduled_workout_id', null)
         .not('workout_date', 'is', null)
         .order('workout_date', { ascending: false });
-      
+
       if (error) throw error;
       return data;
     },
     enabled: !!profileId,
+  });
+}
+
+// Fetch personal workout logs for a team athlete (coach view)
+export function useTeamAthletePersonalWorkoutLogs(teamAthleteId?: string) {
+  return useQuery({
+    queryKey: ['team-athlete-personal-logs', teamAthleteId],
+    queryFn: async () => {
+      if (!teamAthleteId) return [];
+
+      const { data, error } = await supabase
+        .from('workout_logs')
+        .select('*')
+        .eq('team_athlete_id', teamAthleteId)
+        .is('scheduled_workout_id', null)
+        .not('workout_date', 'is', null)
+        .order('workout_date', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!teamAthleteId,
   });
 }
