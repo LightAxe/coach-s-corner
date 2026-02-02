@@ -25,53 +25,42 @@ Full CRUD functionality for team announcements has been implemented.
 
 ---
 
-# Future Features (Require Database Changes)
+# ✅ Personal/Historical Workout Logging - IMPLEMENTED
 
-## Personal/Historical Workout Logging
+## Overview
+Athletes can now log personal workouts that aren't on the coach's schedule. This enables:
+- Logging summer training, personal runs, or cross-training
+- Backfilling historical data to build ACWR history faster
+- More accurate ACWR calculations for new athletes
 
-### Problem
-Athletes can only log workouts that coaches have scheduled. They cannot:
-- Add runs that weren't on the schedule
-- Log summer training, personal runs, or cross-training
-- Backfill historical data to build ACWR history faster
+## Database Changes
+- `workout_logs.scheduled_workout_id` is now nullable
+- Added `workout_logs.workout_date` (DATE) for unscheduled workouts
+- Added `workout_logs.workout_type` for personal workout categorization
+- Updated RLS policies to allow personal workout creation
 
-This limits the accuracy of ACWR (Acute:Chronic Workload Ratio) calculations for new athletes or during off-season.
-
-### Proposed Solution
-
-**Database Changes:**
-```sql
--- Allow workout_logs without a scheduled workout
-ALTER TABLE workout_logs
-  ALTER COLUMN scheduled_workout_id DROP NOT NULL;
-
--- Add date field for unscheduled workouts
-ALTER TABLE workout_logs
-  ADD COLUMN workout_date DATE;
-
--- Add constraint: must have either scheduled_workout_id OR workout_date
-ALTER TABLE workout_logs
-  ADD CONSTRAINT workout_date_or_scheduled CHECK (
-    scheduled_workout_id IS NOT NULL OR workout_date IS NOT NULL
-  );
-```
-
-**Frontend Changes:**
-1. Add "Log Personal Workout" button to athlete dashboard/calendar
-2. Create `PersonalWorkoutDialog` component with:
-   - Date picker (can select past dates)
-   - Distance input (miles/km)
+## Frontend Changes
+1. **PersonalWorkoutDialog** (`src/components/workouts/PersonalWorkoutDialog.tsx`):
+   - Date picker (past 60 days)
+   - Workout type dropdown (Easy, Tempo, Interval, Long, Race, Other)
+   - Distance input with miles/km toggle
    - RPE slider (1-10)
-   - Optional notes
-   - Workout type dropdown (easy run, long run, tempo, etc.)
-3. Update `useACWR` and `useTeamAthleteStats` hooks to include personal workouts in calculations
+   - "How did you feel?" selector
+   - Notes textarea
 
-**UI Location:**
-- Athlete Dashboard: "Add Workout" floating action button or card
-- Calendar view: Click on empty day to add personal workout
-- Training Journal: "Add Entry" button
+2. **Dashboard Integration** (`src/components/dashboard/TodayWorkout.tsx`):
+   - "Log Personal Workout" button when no scheduled workout
+   - "+" button next to regular log button for alternative workouts
 
-### Benefits
-- More accurate ACWR for new athletes (can backfill 4 weeks of history)
-- Captures off-season and supplemental training
-- Complete picture of training load for injury prevention
+3. **ACWR Calculations** (Updated hooks):
+   - `useACWR.ts` - Now includes personal workouts in training load calculations
+   - `useTeamAthleteStats.ts` - Includes personal workouts in weekly miles and ACWR
+
+## Files Created
+- `src/components/workouts/PersonalWorkoutDialog.tsx`
+
+## Files Modified
+- `src/hooks/useWorkoutLogs.ts` - Added `useCreatePersonalWorkout`, `usePersonalWorkoutLogs`
+- `src/hooks/useACWR.ts` - Fetches both scheduled and personal logs
+- `src/hooks/useTeamAthleteStats.ts` - Includes personal logs in stats
+- `src/components/dashboard/TodayWorkout.tsx` - Added personal workout button

@@ -533,7 +533,7 @@ serve(async (req) => {
       // CSV format - create ZIP
       const zipData = createZipFile(finalExport, role);
 
-      return new Response(zipData, {
+      return new Response(zipData as unknown as ArrayBuffer, {
         status: 200,
         headers: {
           "Content-Type": "application/zip",

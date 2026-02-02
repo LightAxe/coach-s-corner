@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { subDays, format, parseISO, startOfDay } from 'date-fns';
+import { subDays, format, startOfDay } from 'date-fns';
 
 interface DailyLoad {
   date: string;
@@ -57,9 +57,11 @@ export function useACWR(teamAthleteId: string | undefined) {
       }
 
       // Fetch last 35 days of workout logs (28 for chronic + 7 buffer)
+      // Include both scheduled workout logs and personal workouts
       const startDate = format(subDays(new Date(), 35), 'yyyy-MM-dd');
 
-      const { data: logs, error } = await supabase
+      // Fetch scheduled workout logs
+      const { data: scheduledLogs, error: scheduledError } = await supabase
         .from('workout_logs')
         .select(`
           id,
@@ -72,15 +74,35 @@ export function useACWR(teamAthleteId: string | undefined) {
           )
         `)
         .eq('team_athlete_id', teamAthleteId)
+        .not('scheduled_workout_id', 'is', null)
         .gte('scheduled_workouts.scheduled_date', startDate)
         .order('scheduled_workouts(scheduled_date)', { ascending: true });
 
-      if (error) throw error;
+      if (scheduledError) throw scheduledError;
 
-      // Build daily load map
+      // Fetch personal workout logs (unscheduled)
+      const { data: personalLogs, error: personalError } = await supabase
+        .from('workout_logs')
+        .select(`
+          id,
+          distance_value,
+          distance_unit,
+          effort_level,
+          workout_date,
+          created_at
+        `)
+        .eq('team_athlete_id', teamAthleteId)
+        .is('scheduled_workout_id', null)
+        .not('workout_date', 'is', null)
+        .gte('workout_date', startDate)
+        .order('workout_date', { ascending: true });
+
+      if (personalError) throw personalError;
+
+      // Build daily load map from scheduled logs
       const dailyLoads: Map<string, number> = new Map();
 
-      for (const log of logs || []) {
+      for (const log of scheduledLogs || []) {
         const workout = log.scheduled_workouts as { scheduled_date: string } | null;
         if (!workout?.scheduled_date) continue;
 
@@ -101,6 +123,23 @@ export function useACWR(teamAthleteId: string | undefined) {
         dailyLoads.set(date, (dailyLoads.get(date) || 0) + load);
       }
 
+      // Add personal workout logs to daily loads
+      for (const log of personalLogs || []) {
+        const date = log.workout_date;
+        if (!date) continue;
+
+        const distance = log.distance_value || 0;
+        const rpe = log.effort_level || 5;
+
+        let distanceInMiles = distance;
+        if (log.distance_unit === 'km') {
+          distanceInMiles = distance * 0.621371;
+        }
+
+        const load = rpe * distanceInMiles;
+        dailyLoads.set(date, (dailyLoads.get(date) || 0) + load);
+      }
+
       // Create array of last 35 days with loads (0 for rest days)
       const today = startOfDay(new Date());
       const dailyLoadArray: DailyLoad[] = [];
@@ -116,7 +155,7 @@ export function useACWR(teamAthleteId: string | undefined) {
       // Count days with actual data
       const daysWithData = dailyLoadArray.filter(d => d.load > 0).length;
 
-      // Need at least 14 days of data for meaningful ACWR
+      // Need at least 7 days of data for meaningful ACWR
       if (daysWithData < 7) {
         return {
           acwr: null,

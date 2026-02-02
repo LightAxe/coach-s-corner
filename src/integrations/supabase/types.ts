@@ -844,9 +844,11 @@ export type Database = {
           logged_by: string | null
           notes: string | null
           profile_id: string | null
-          scheduled_workout_id: string
+          scheduled_workout_id: string | null
           team_athlete_id: string | null
           updated_at: string
+          workout_date: string | null
+          workout_type: Database["public"]["Enums"]["workout_type"] | null
         }
         Insert: {
           completed?: boolean
@@ -862,9 +864,11 @@ export type Database = {
           logged_by?: string | null
           notes?: string | null
           profile_id?: string | null
-          scheduled_workout_id: string
+          scheduled_workout_id?: string | null
           team_athlete_id?: string | null
           updated_at?: string
+          workout_date?: string | null
+          workout_type?: Database["public"]["Enums"]["workout_type"] | null
         }
         Update: {
           completed?: boolean
@@ -880,9 +884,11 @@ export type Database = {
           logged_by?: string | null
           notes?: string | null
           profile_id?: string | null
-          scheduled_workout_id?: string
+          scheduled_workout_id?: string | null
           team_athlete_id?: string | null
           updated_at?: string
+          workout_date?: string | null
+          workout_type?: Database["public"]["Enums"]["workout_type"] | null
         }
         Relationships: [
           {
