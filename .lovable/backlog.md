@@ -70,10 +70,10 @@ Show a running total of miles for the season on the dashboard and/or training jo
 
 ---
 
-## 4. Calendar Export (iCal / Google Calendar)
+## ~~4. Calendar Export (iCal / Google Calendar)~~ ✅
 
-**Status:** Needs scoping
-**Owner:** Lovable (Edge Function) + Claude Code (UI)
+**Status:** Complete
+**Owner:** Claude Code (Edge Function + UI) + Lovable (DB migration)
 **Priority:** Medium
 
 Parents and athletes want the meet schedule and practice calendar in their phone's calendar app without manually entering dates.
@@ -196,3 +196,6 @@ Implemented. `WorkoutCompliance` component on coach dashboard shows color-coded 
 
 ### ~~Cumulative Season Mileage~~ ✅
 Implemented. `useSeasonMileage` hook sums scheduled + personal workout distances within the active season. Displayed as highlighted stat card in Training Journal workouts tab.
+
+### ~~Calendar Export (iCal)~~ ✅
+Implemented. `calendar-feed` Edge Function serves iCal feed via token-based auth (`calendar_feed_token` on `teams` table). Subscribe dialog on Calendar page with content type picker (races/workouts/all), copy URL, and quick-add links for Google Calendar and Apple Calendar.
