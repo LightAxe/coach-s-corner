@@ -4,9 +4,9 @@ Prioritized list of feature enhancements. Items are worked on collaboratively be
 
 ---
 
-## 1. Edit/Delete Personal Workouts
+## ~~1. Edit/Delete Personal Workouts~~ ✅
 
-**Status:** Ready to build
+**Status:** Complete
 **Owner:** Claude Code
 **Priority:** High
 
@@ -28,9 +28,9 @@ See `.lovable/plan.md` "Future Features" section for original spec.
 
 ---
 
-## 2. Compliance Dashboard ("Who Logged Today?")
+## ~~2. Compliance Dashboard ("Who Logged Today?")~~ ✅
 
-**Status:** Ready to build
+**Status:** Complete
 **Owner:** Claude Code
 **Priority:** High
 
@@ -50,9 +50,9 @@ Coaches need an at-a-glance view showing which athletes completed today's schedu
 
 ---
 
-## 3. Cumulative Season Mileage
+## ~~3. Cumulative Season Mileage~~ ✅
 
-**Status:** Ready to build
+**Status:** Complete
 **Owner:** Claude Code
 **Priority:** Medium
 
@@ -187,3 +187,12 @@ Implemented. Teams have separate `join_code` (athletes) and `coach_invite_code` 
 
 ### ~~Open Records/Leaderboard to Athletes~~ ✅
 Implemented. Nav updated to show Records for athletes. PR progression added to Training Journal Races tab. RLS policy added for team_athletes visibility.
+
+### ~~Edit/Delete Personal Workouts~~ ✅
+Implemented. `PersonalWorkoutDialog` supports edit mode via `existingLog` prop. `JournalEntry` now renders personal workouts with edit/delete buttons and "Personal" badge. Date filtering fixed to include personal workouts. Added `useUpdatePersonalWorkout` hook.
+
+### ~~Compliance Dashboard~~ ✅
+Implemented. `WorkoutCompliance` component on coach dashboard shows color-coded athlete grid with completion status for today's scheduled workout. Sorted by status (not logged first).
+
+### ~~Cumulative Season Mileage~~ ✅
+Implemented. `useSeasonMileage` hook sums scheduled + personal workout distances within the active season. Displayed as highlighted stat card in Training Journal workouts tab.
