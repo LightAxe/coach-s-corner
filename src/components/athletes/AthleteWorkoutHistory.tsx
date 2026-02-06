@@ -166,9 +166,9 @@ function WorkoutHistoryEntry({ log }: { log: WorkoutLogWithScheduled }) {
 
   const dateStr = format(parseISO(effectiveDate), 'MMM d, yyyy');
 
-  const workoutType = isScheduled
+  const workoutType = (isScheduled
     ? log.scheduled_workouts!.type
-    : (log.workout_type || 'other');
+    : (log.workout_type || 'other')) as 'easy' | 'tempo' | 'interval' | 'long' | 'rest' | 'race' | 'other';
   const typeLabel = workoutType.charAt(0).toUpperCase() + workoutType.slice(1);
 
   const title = isScheduled
