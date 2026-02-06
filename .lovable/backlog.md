@@ -123,11 +123,34 @@ Parent opt-in daily digest notification summarizing their athlete's attendance w
 
 ---
 
-## 6. Team Score Calculator + Lineup Modeling
+## 6. Landing Page / Homepage
+
+**Status:** Ready to build
+**Owner:** Claude Code
+**Priority:** High
+
+Currently the app drops visitors straight into the signup/login flow with no context. Need a public landing page that explains what the app does, who it's for, and highlights key features before asking people to sign up.
+
+### Requirements
+- Public route (no auth required)
+- Hero section with value proposition
+- Feature highlights (calendar, workout logging, race results, attendance, etc.)
+- Role-based benefits (coaches, athletes, parents)
+- Clear CTA to sign up / log in
+- Responsive design, consistent with app styling
+
+### Open Questions
+- Any testimonials or social proof to include?
+- Screenshots/mockups of the app, or keep it text-based for now?
+
+---
+
+## 7. Team Score Calculator + Lineup Modeling
 
 **Status:** Needs discussion
 **Owner:** TBD
 **Priority:** Medium-Low
+
 
 XC team scoring: sum of top 5 runners' finishing places. Coaches want "what-if" lineup scenario planning.
 
@@ -145,7 +168,7 @@ XC team scoring: sum of top 5 runners' finishing places. Coaches want "what-if" 
 
 ---
 
-## 7. Results Import
+## 8. Results Import
 
 **Status:** Needs research
 **Owner:** Both
@@ -166,7 +189,7 @@ Bulk import race results from timing systems or Athletic.net instead of manual e
 
 ---
 
-## 8. Coach Analytics Dashboard
+## 9. Coach Analytics Dashboard
 
 **Status:** Needs discussion
 **Owner:** TBD
@@ -192,7 +215,7 @@ Coaches need a centralized analytics view to understand how athletes are trainin
 
 ---
 
-## 9. Mobile App
+## 10. Mobile App
 
 **Status:** Future / needs scoping
 **Owner:** TBD
