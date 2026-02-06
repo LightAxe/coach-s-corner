@@ -789,6 +789,7 @@ export type Database = {
       }
       teams: {
         Row: {
+          calendar_feed_token: string
           coach_invite_code: string | null
           created_at: string
           created_by: string
@@ -797,6 +798,7 @@ export type Database = {
           name: string
         }
         Insert: {
+          calendar_feed_token?: string
           coach_invite_code?: string | null
           created_at?: string
           created_by: string
@@ -805,6 +807,7 @@ export type Database = {
           name: string
         }
         Update: {
+          calendar_feed_token?: string
           coach_invite_code?: string | null
           created_at?: string
           created_by?: string
