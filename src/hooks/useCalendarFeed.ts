@@ -12,13 +12,11 @@ export function useCalendarFeedToken(teamId?: string) {
         .single();
 
       if (error) {
-        // Column may not exist yet — gracefully return null
         console.warn('Could not fetch calendar_feed_token:', error.message);
         return null;
       }
 
-      // The column may not exist in the generated types yet
-      return (data as Record<string, unknown>)?.calendar_feed_token as string | null;
+      return data?.calendar_feed_token ?? null;
     },
     enabled: !!teamId,
     staleTime: 5 * 60 * 1000, // 5 minutes
