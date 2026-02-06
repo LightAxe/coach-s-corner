@@ -200,12 +200,54 @@ export function useTeamStats(teamId: string | undefined, seasonId?: string | nul
         completedCount = count || 0;
       }
       
-      // Weekly miles would require additional distance tracking
-      // For now, return 0 as placeholder
+      // Get weekly miles from workout logs for team athletes
+      const now = new Date();
+      const weekStart = format(startOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+      const weekEnd = format(endOfWeek(now, { weekStartsOn: 1 }), 'yyyy-MM-dd');
+
+      // Scheduled workout logs (date comes from the scheduled workout)
+      const { data: scheduledLogs } = await supabase
+        .from('workout_logs')
+        .select(`
+          distance_value,
+          distance_unit,
+          scheduled_workouts!inner (
+            scheduled_date,
+            team_id
+          )
+        `)
+        .eq('scheduled_workouts.team_id', teamId)
+        .gte('scheduled_workouts.scheduled_date', weekStart)
+        .lte('scheduled_workouts.scheduled_date', weekEnd)
+        .not('distance_value', 'is', null);
+
+      // Personal workout logs (date comes from workout_date)
+      const { data: personalLogs } = await supabase
+        .from('workout_logs')
+        .select(`
+          distance_value,
+          distance_unit,
+          team_athletes!inner (
+            team_id
+          )
+        `)
+        .is('scheduled_workout_id', null)
+        .eq('team_athletes.team_id', teamId)
+        .gte('workout_date', weekStart)
+        .lte('workout_date', weekEnd)
+        .not('distance_value', 'is', null);
+
+      let totalMiles = 0;
+      const allLogs = [...(scheduledLogs || []), ...(personalLogs || [])];
+      for (const log of allLogs) {
+        const dist = log.distance_value ?? 0;
+        totalMiles += log.distance_unit === 'km' ? dist * 0.621371 : dist;
+      }
+
       return {
         totalAthletes: athleteCount || 0,
         workoutsCompleted: completedCount,
-        weeklyMiles: 0, // Placeholder - would need distance logging
+        weeklyMiles: Math.round(totalMiles * 10) / 10,
       };
     },
     enabled: !!teamId,
