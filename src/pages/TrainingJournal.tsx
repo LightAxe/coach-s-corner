@@ -29,6 +29,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { toast } from 'sonner';
+import { useSeasonMileage } from '@/hooks/useSeasonMileage';
+import { useActiveSeason } from '@/hooks/useSeasons';
 
 type DateRange = {
   from: Date | undefined;
@@ -43,7 +45,7 @@ const PRESET_RANGES = [
 ];
 
 export default function TrainingJournal() {
-  const { user, isCoach } = useAuth();
+  const { user, isCoach, currentTeam } = useAuth();
   const [dateRange, setDateRange] = useState<DateRange>({
     from: subDays(new Date(), 30),
     to: new Date(),
@@ -57,6 +59,8 @@ export default function TrainingJournal() {
 
   const { data: logs, isLoading: logsLoading } = useAthleteWorkoutLogs(user?.id);
   const { data: raceResults, isLoading: racesLoading } = useProfileRaceResults(user?.id);
+  const { data: activeSeason } = useActiveSeason(currentTeam?.id);
+  const { data: seasonMileage = 0 } = useSeasonMileage(user?.id, activeSeason?.id);
 
   const isLoading = activeTab === 'workouts' ? logsLoading : racesLoading;
 
@@ -280,7 +284,7 @@ export default function TrainingJournal() {
           {/* Workouts Tab */}
           <TabsContent value="workouts" className="mt-6">
             {/* Stats Summary */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
               <Card>
                 <CardContent className="pt-4">
                   <div className="text-2xl font-bold">{filteredLogs.length}</div>
@@ -300,7 +304,15 @@ export default function TrainingJournal() {
                   <div className="text-2xl font-bold">
                     {filteredLogs.reduce((sum, l) => sum + (l.distance_value || 0), 0).toFixed(1)}
                   </div>
-                  <p className="text-xs text-muted-foreground">Total Miles</p>
+                  <p className="text-xs text-muted-foreground">Period Miles</p>
+                </CardContent>
+              </Card>
+              <Card className="border-primary/30 bg-primary/5">
+                <CardContent className="pt-4">
+                  <div className="text-2xl font-bold text-primary">{seasonMileage}</div>
+                  <p className="text-xs text-muted-foreground">
+                    Season Miles{activeSeason ? ` (${activeSeason.name})` : ''}
+                  </p>
                 </CardContent>
               </Card>
               <Card>
