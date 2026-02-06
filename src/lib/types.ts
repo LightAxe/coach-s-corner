@@ -18,6 +18,10 @@ export type RaceResult = Database['public']['Tables']['race_results']['Row'];
 // Completion status for workout logs
 export type CompletionStatus = Database['public']['Enums']['completion_status'];
 
+// Attendance
+export type Attendance = Database['public']['Tables']['attendance']['Row'];
+export type AttendanceStatus = Database['public']['Enums']['attendance_status'];
+
 // Team athlete with optional profile data
 export type TeamAthleteWithProfile = TeamAthlete & {
   profiles?: Profile | null;

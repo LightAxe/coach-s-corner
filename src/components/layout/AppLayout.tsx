@@ -1,16 +1,17 @@
 import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { 
-  Home, 
-  Calendar, 
-  Users, 
+  Home,
+  Calendar,
+  Users,
   Trophy,
   BookOpen,
   Settings,
   Menu,
   X,
   Link2,
-  History
+  History,
+  ClipboardCheck
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -40,6 +41,7 @@ const navigation: NavItem[] = [
   { name: 'Journal', href: '/journal', icon: BookOpen, athleteOnly: true },
   { name: 'Parent Access', href: '/parent-access', icon: Users, athleteOnly: true },
   { name: 'Athletes', href: '/athletes', icon: Users, coachOnly: true },
+  { name: 'Attendance', href: '/attendance', icon: ClipboardCheck, coachOnly: true },
   { name: 'Records', href: '/records', icon: Trophy, hideForParent: true },
   { name: 'Audit Log', href: '/audit-log', icon: History, coachOnly: true },
   { name: 'Team Settings', href: '/team-settings', icon: Settings, coachOnly: true },

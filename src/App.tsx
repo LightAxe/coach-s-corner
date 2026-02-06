@@ -22,6 +22,7 @@ import TrainingJournal from "./pages/TrainingJournal";
 import TeamSettings from "./pages/TeamSettings";
 import AccountSettings from "./pages/AccountSettings";
 import ParentAccess from "./pages/ParentAccess";
+import Attendance from "./pages/Attendance";
 import AuditLog from "./pages/AuditLog";
 import NotFound from "./pages/NotFound";
 
@@ -98,6 +99,11 @@ const App = () => (
               <Route path="/parent-access" element={
                 <ProtectedRoute requireTeam>
                   <ParentAccess />
+                </ProtectedRoute>
+              } />
+              <Route path="/attendance" element={
+                <ProtectedRoute requireTeam>
+                  <Attendance />
                 </ProtectedRoute>
               } />
               <Route path="/audit-log" element={
