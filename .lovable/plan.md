@@ -95,9 +95,11 @@ Added a "Personal Workouts" card on the Athlete Detail page between the ACWR Ind
 
 ---
 
-# Future Features (Require Additional Work)
+# Future Features
 
-## Edit/Delete Personal Workouts
+See `.lovable/backlog.md` for the full prioritized backlog.
+
+## Edit/Delete Personal Workouts (Backlog #1 — Next Up)
 
 ### Problem
 Athletes can create personal workouts but cannot edit or delete them after submission. This is needed for:
