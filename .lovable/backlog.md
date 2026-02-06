@@ -166,7 +166,33 @@ Bulk import race results from timing systems or Athletic.net instead of manual e
 
 ---
 
-## 8. Mobile App
+## 8. Coach Analytics Dashboard
+
+**Status:** Needs discussion
+**Owner:** TBD
+**Priority:** Medium
+
+Coaches need a centralized analytics view to understand how athletes are training, performing, and feeling over time. The data already exists across workout logs, race results, attendance, and ACWR — this feature surfaces it in one place with actionable insights.
+
+### Possible Dimensions
+- **Training volume:** weekly/monthly mileage trends per athlete and team-wide, volume distribution by workout type
+- **Performance:** race time progression, PR tracking, pace trends across workouts
+- **Wellness/effort:** perceived effort trends, completion status patterns (partial/missed workouts), ACWR risk flags
+- **Attendance:** attendance rate trends, correlation with performance
+- **Team-wide views:** aggregate dashboards, comparisons across athletes or training groups
+
+### Open Questions
+- Which metrics are most valuable to coaches day-to-day vs. for season planning?
+- Individual athlete deep-dive vs. team-wide overview vs. both?
+- How far back should trend data go — current season only, or cross-season?
+- Are there specific visualizations coaches expect (charts, tables, heatmaps)?
+- Should athletes see their own analytics, or coach-only?
+- Do we need any new data collection (e.g. RPE/mood tracking on workout logs) to power wellness insights?
+- How does this relate to the existing ACWR widget on athlete detail pages?
+
+---
+
+## 9. Mobile App
 
 **Status:** Future / needs scoping
 **Owner:** TBD
