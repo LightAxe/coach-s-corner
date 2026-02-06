@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronLeft, ChevronRight, Plus, Trophy } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Plus, Trophy, CalendarSync } from 'lucide-react';
 import { format, startOfWeek, addDays, isSameDay, parseISO, addWeeks, subWeeks } from 'date-fns';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,6 +18,7 @@ import { WorkoutLogDialog } from '@/components/workouts/WorkoutLogDialog';
 import { WorkoutDetailDialog } from '@/components/workouts/WorkoutDetailDialog';
 import { EditWorkoutDialog } from '@/components/workouts/EditWorkoutDialog';
 import { PersonalWorkoutDialog } from '@/components/workouts/PersonalWorkoutDialog';
+import { CalendarSubscribeDialog } from '@/components/calendar/CalendarSubscribeDialog';
 
 export default function Calendar() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -31,7 +32,8 @@ export default function Calendar() {
   const [editWorkoutOpen, setEditWorkoutOpen] = useState(false);
   const [personalWorkoutOpen, setPersonalWorkoutOpen] = useState(false);
   const [personalWorkoutDate, setPersonalWorkoutDate] = useState<Date | undefined>(undefined);
-  
+  const [subscribeOpen, setSubscribeOpen] = useState(false);
+
   const weekStart = startOfWeek(currentDate, { weekStartsOn: 1 });
   const weekEnd = addDays(weekStart, 6);
   
@@ -115,12 +117,18 @@ export default function Calendar() {
               Plan workouts and races for your team
             </p>
           </div>
-          {isCoach && (
-            <Button className="gap-2" onClick={() => handleAddItem()}>
-              <Plus className="h-4 w-4" />
-              Add to Calendar
+          <div className="flex items-center gap-2">
+            <Button variant="outline" className="gap-2" onClick={() => setSubscribeOpen(true)}>
+              <CalendarSync className="h-4 w-4" />
+              Subscribe
             </Button>
-          )}
+            {isCoach && (
+              <Button className="gap-2" onClick={() => handleAddItem()}>
+                <Plus className="h-4 w-4" />
+                Add to Calendar
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Calendar navigation */}
@@ -303,6 +311,11 @@ export default function Calendar() {
           open={personalWorkoutOpen}
           onOpenChange={setPersonalWorkoutOpen}
           initialDate={personalWorkoutDate}
+        />
+
+        <CalendarSubscribeDialog
+          open={subscribeOpen}
+          onOpenChange={setSubscribeOpen}
         />
       </div>
     </AppLayout>
