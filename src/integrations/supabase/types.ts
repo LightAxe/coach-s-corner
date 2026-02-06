@@ -73,6 +73,75 @@ export type Database = {
           },
         ]
       }
+      attendance: {
+        Row: {
+          created_at: string
+          created_by: string
+          date: string
+          id: string
+          note: string | null
+          status: Database["public"]["Enums"]["attendance_status"]
+          team_athlete_id: string
+          team_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          date: string
+          id?: string
+          note?: string | null
+          status?: Database["public"]["Enums"]["attendance_status"]
+          team_athlete_id: string
+          team_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          date?: string
+          id?: string
+          note?: string | null
+          status?: Database["public"]["Enums"]["attendance_status"]
+          team_athlete_id?: string
+          team_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "attendance_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_team_athlete_id_fkey"
+            columns: ["team_athlete_id"]
+            isOneToOne: false
+            referencedRelation: "team_athletes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "attendance_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       audit_logs: {
         Row: {
           action: string
@@ -1129,6 +1198,7 @@ export type Database = {
       }
     }
     Enums: {
+      attendance_status: "present" | "absent" | "excused" | "late"
       completion_status: "none" | "partial" | "complete"
       distance_type:
         | "1600m"
@@ -1274,6 +1344,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      attendance_status: ["present", "absent", "excused", "late"],
       completion_status: ["none", "partial", "complete"],
       distance_type: [
         "1600m",
