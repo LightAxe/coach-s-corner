@@ -241,6 +241,41 @@ export function useDeleteWorkoutLog() {
   });
 }
 
+// Update a personal workout
+export function useUpdatePersonalWorkout() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async ({ id, ...data }: { id: string } & Partial<PersonalWorkoutData>) => {
+      const { data: log, error } = await supabase
+        .from('workout_logs')
+        .update({
+          workout_date: data.workout_date,
+          workout_type: data.workout_type,
+          effort_level: data.effort_level,
+          how_felt: data.how_felt,
+          notes: data.notes,
+          distance_value: data.distance_value,
+          distance_unit: data.distance_unit,
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return log;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['athlete-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['team-athlete-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['team-athlete-all-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['personal-workout-logs'] });
+      queryClient.invalidateQueries({ queryKey: ['acwr'] });
+      queryClient.invalidateQueries({ queryKey: ['team-athlete-stats'] });
+    },
+  });
+}
+
 // Create a personal workout (not tied to a scheduled workout)
 export function useCreatePersonalWorkout() {
   const queryClient = useQueryClient();

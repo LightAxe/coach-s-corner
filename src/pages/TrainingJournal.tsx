@@ -10,7 +10,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
-import { useAthleteWorkoutLogs } from '@/hooks/useWorkoutLogs';
+import { useAthleteWorkoutLogs, useDeleteWorkoutLog } from '@/hooks/useWorkoutLogs';
 import { useProfileRaceResults } from '@/hooks/useRaceResults';
 import { usePagination } from '@/hooks/usePagination';
 import { JournalEntry } from '@/components/journal/JournalEntry';
@@ -18,6 +18,17 @@ import { RaceEntry } from '@/components/journal/RaceEntry';
 import { PaginationControls } from '@/components/PaginationControls';
 import { PersonalWorkoutDialog } from '@/components/workouts/PersonalWorkoutDialog';
 import { MyRecords } from '@/components/journal/MyRecords';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { toast } from 'sonner';
 
 type DateRange = {
   from: Date | undefined;
@@ -40,41 +51,44 @@ export default function TrainingJournal() {
   const [activePreset, setActivePreset] = useState<number | null>(30);
   const [activeTab, setActiveTab] = useState<'workouts' | 'races'>('workouts');
   const [personalWorkoutOpen, setPersonalWorkoutOpen] = useState(false);
+  const [editingLog, setEditingLog] = useState<any>(null);
+  const [deleteLogId, setDeleteLogId] = useState<string | null>(null);
+  const deleteWorkoutLog = useDeleteWorkoutLog();
 
   const { data: logs, isLoading: logsLoading } = useAthleteWorkoutLogs(user?.id);
   const { data: raceResults, isLoading: racesLoading } = useProfileRaceResults(user?.id);
 
   const isLoading = activeTab === 'workouts' ? logsLoading : racesLoading;
 
-  // Filter workout logs by date range
+  // Filter workout logs by date range (handles both scheduled and personal workouts)
   const filteredLogs = useMemo(() => {
     if (!logs) return [];
-    
+
     if (!dateRange.from && !dateRange.to) {
       return logs;
     }
 
     return logs.filter((log) => {
-      const workoutDate = log.scheduled_workouts?.scheduled_date;
+      const workoutDate = log.scheduled_workouts?.scheduled_date || log.workout_date;
       if (!workoutDate) return false;
 
       const date = parseISO(workoutDate);
-      
+
       if (dateRange.from && dateRange.to) {
         return isWithinInterval(date, {
           start: startOfDay(dateRange.from),
           end: endOfDay(dateRange.to),
         });
       }
-      
+
       if (dateRange.from) {
         return date >= startOfDay(dateRange.from);
       }
-      
+
       if (dateRange.to) {
         return date <= endOfDay(dateRange.to);
       }
-      
+
       return true;
     });
   }, [logs, dateRange]);
@@ -149,7 +163,7 @@ export default function TrainingJournal() {
     const groups: Record<string, typeof filteredLogs> = {};
 
     workoutsPagination.paginatedItems.forEach((log) => {
-      const workoutDate = log.scheduled_workouts?.scheduled_date;
+      const workoutDate = log.scheduled_workouts?.scheduled_date || log.workout_date;
       if (!workoutDate) return;
 
       const monthKey = format(parseISO(workoutDate), 'MMMM yyyy');
@@ -331,7 +345,15 @@ export default function TrainingJournal() {
                       </h2>
                       <div className="space-y-3">
                         {monthLogs.map((log) => (
-                          <JournalEntry key={log.id} log={log as any} />
+                          <JournalEntry
+                            key={log.id}
+                            log={log as any}
+                            onEdit={!log.scheduled_workouts ? () => {
+                              setEditingLog(log);
+                              setPersonalWorkoutOpen(true);
+                            } : undefined}
+                            onDelete={!log.scheduled_workouts ? () => setDeleteLogId(log.id) : undefined}
+                          />
                         ))}
                       </div>
                     </div>
@@ -433,8 +455,41 @@ export default function TrainingJournal() {
 
       <PersonalWorkoutDialog
         open={personalWorkoutOpen}
-        onOpenChange={setPersonalWorkoutOpen}
+        onOpenChange={(open) => {
+          setPersonalWorkoutOpen(open);
+          if (!open) setEditingLog(null);
+        }}
+        existingLog={editingLog || undefined}
       />
+
+      <AlertDialog open={!!deleteLogId} onOpenChange={(open) => { if (!open) setDeleteLogId(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete workout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this personal workout log. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!deleteLogId) return;
+                try {
+                  await deleteWorkoutLog.mutateAsync(deleteLogId);
+                  toast.success('Workout deleted');
+                  setDeleteLogId(null);
+                } catch {
+                  toast.error('Failed to delete workout');
+                }
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AppLayout>
   );
 }

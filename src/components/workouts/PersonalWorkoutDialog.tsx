@@ -51,7 +51,7 @@ import { cn } from '@/lib/utils';
 import type { WorkoutType } from '@/lib/types';
 import { FeelingSelector } from './FeelingSelector';
 import { RPESlider } from './RPESlider';
-import { useCreatePersonalWorkout, type PersonalWorkoutData } from '@/hooks/useWorkoutLogs';
+import { useCreatePersonalWorkout, useUpdatePersonalWorkout, useDeleteWorkoutLog, type PersonalWorkoutData } from '@/hooks/useWorkoutLogs';
 
 const workoutTypes: { value: WorkoutType; label: string }[] = [
   { value: 'easy', label: 'Easy Run' },
@@ -76,6 +76,17 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>;
 
+interface ExistingLog {
+  id: string;
+  workout_date: string | null;
+  workout_type: WorkoutType | null;
+  distance_value: number | null;
+  distance_unit: string | null;
+  effort_level: number | null;
+  how_felt: string | null;
+  notes: string | null;
+}
+
 interface PersonalWorkoutDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -85,6 +96,8 @@ interface PersonalWorkoutDialogProps {
   teamAthleteId?: string;
   /** Display name when logging for an athlete */
   athleteName?: string;
+  /** Existing log for edit mode */
+  existingLog?: ExistingLog;
 }
 
 export function PersonalWorkoutDialog({
@@ -93,14 +106,29 @@ export function PersonalWorkoutDialog({
   initialDate,
   teamAthleteId,
   athleteName,
+  existingLog,
 }: PersonalWorkoutDialogProps) {
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const { user } = useAuth();
   const createPersonalWorkout = useCreatePersonalWorkout();
+  const updatePersonalWorkout = useUpdatePersonalWorkout();
+  const deleteWorkoutLog = useDeleteWorkoutLog();
+  const isEditing = !!existingLog;
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
+  const getDefaults = (): FormValues => {
+    if (existingLog) {
+      return {
+        workout_date: existingLog.workout_date ? new Date(existingLog.workout_date + 'T00:00:00') : new Date(),
+        workout_type: (existingLog.workout_type as WorkoutType) || 'easy',
+        distance_value: existingLog.distance_value,
+        distance_unit: (existingLog.distance_unit as 'miles' | 'km') || 'miles',
+        effort_level: existingLog.effort_level,
+        how_felt: existingLog.how_felt || '',
+        notes: existingLog.notes || '',
+      };
+    }
+    return {
       workout_date: initialDate || new Date(),
       workout_type: 'easy',
       distance_value: null,
@@ -108,48 +136,70 @@ export function PersonalWorkoutDialog({
       effort_level: null,
       how_felt: '',
       notes: '',
-    },
+    };
+  };
+
+  const form = useForm<FormValues>({
+    resolver: zodResolver(formSchema),
+    defaultValues: getDefaults(),
   });
 
   // Reset form when dialog opens
   useEffect(() => {
     if (open) {
-      form.reset({
-        workout_date: initialDate || new Date(),
-        workout_type: 'easy',
-        distance_value: null,
-        distance_unit: 'miles',
-        effort_level: null,
-        how_felt: '',
-        notes: '',
-      });
+      form.reset(getDefaults());
     }
-  }, [open, initialDate, form]);
+  }, [open, initialDate, existingLog, form]);
 
   const onSubmit = async (values: FormValues) => {
     if (!user) return;
 
     try {
-      const data: PersonalWorkoutData = {
-        workout_date: format(values.workout_date, 'yyyy-MM-dd'),
-        workout_type: values.workout_type,
-        profile_id: teamAthleteId ? null : user.id,
-        team_athlete_id: teamAthleteId || null,
-        logged_by: user.id,
-        completed: true,
-        completion_status: 'complete',
-        effort_level: values.effort_level,
-        how_felt: values.how_felt || null,
-        distance_value: values.distance_value,
-        distance_unit: values.distance_unit,
-        notes: values.notes || null,
-      };
-
-      await createPersonalWorkout.mutateAsync(data);
-      toast.success(teamAthleteId ? `Personal workout logged for ${athleteName}` : 'Personal workout logged!');
+      if (isEditing) {
+        await updatePersonalWorkout.mutateAsync({
+          id: existingLog!.id,
+          workout_date: format(values.workout_date, 'yyyy-MM-dd'),
+          workout_type: values.workout_type,
+          effort_level: values.effort_level,
+          how_felt: values.how_felt || null,
+          distance_value: values.distance_value,
+          distance_unit: values.distance_unit,
+          notes: values.notes || null,
+        });
+        toast.success('Workout updated!');
+      } else {
+        const data: PersonalWorkoutData = {
+          workout_date: format(values.workout_date, 'yyyy-MM-dd'),
+          workout_type: values.workout_type,
+          profile_id: teamAthleteId ? null : user.id,
+          team_athlete_id: teamAthleteId || null,
+          logged_by: user.id,
+          completed: true,
+          completion_status: 'complete',
+          effort_level: values.effort_level,
+          how_felt: values.how_felt || null,
+          distance_value: values.distance_value,
+          distance_unit: values.distance_unit,
+          notes: values.notes || null,
+        };
+        await createPersonalWorkout.mutateAsync(data);
+        toast.success(teamAthleteId ? `Personal workout logged for ${athleteName}` : 'Personal workout logged!');
+      }
       onOpenChange(false);
     } catch (error) {
-      toast.error('Failed to log workout');
+      toast.error(isEditing ? 'Failed to update workout' : 'Failed to log workout');
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!existingLog) return;
+    try {
+      await deleteWorkoutLog.mutateAsync(existingLog.id);
+      toast.success('Workout deleted');
+      setDeleteConfirmOpen(false);
+      onOpenChange(false);
+    } catch (error) {
+      toast.error('Failed to delete workout');
     }
   };
 
@@ -178,7 +228,7 @@ export function PersonalWorkoutDialog({
         <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>
-              Log Personal Workout
+              {isEditing ? 'Edit Personal Workout' : 'Log Personal Workout'}
               {athleteName && <span className="text-muted-foreground font-normal"> for {athleteName}</span>}
             </DialogTitle>
           </DialogHeader>
@@ -361,13 +411,28 @@ export function PersonalWorkoutDialog({
                 )}
               />
 
-              <DialogFooter>
-                <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={createPersonalWorkout.isPending}>
-                  Log Workout
-                </Button>
+              <DialogFooter className={isEditing ? 'flex justify-between sm:justify-between' : ''}>
+                {isEditing && (
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    onClick={() => setDeleteConfirmOpen(true)}
+                    disabled={deleteWorkoutLog.isPending}
+                  >
+                    Delete
+                  </Button>
+                )}
+                <div className="flex gap-2">
+                  <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isEditing ? updatePersonalWorkout.isPending : createPersonalWorkout.isPending}
+                  >
+                    {isEditing ? 'Save Changes' : 'Log Workout'}
+                  </Button>
+                </div>
               </DialogFooter>
             </form>
           </Form>
@@ -386,6 +451,23 @@ export function PersonalWorkoutDialog({
             <AlertDialogCancel>Keep editing</AlertDialogCancel>
             <AlertDialogAction onClick={handleDiscardConfirm}>
               Discard changes
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete workout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete this personal workout log. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

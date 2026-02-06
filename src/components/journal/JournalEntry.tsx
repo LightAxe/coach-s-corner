@@ -1,7 +1,8 @@
 import { format } from 'date-fns';
-import { CheckCircle2, Circle, AlertCircle, Activity, Ruler } from 'lucide-react';
+import { CheckCircle2, Circle, AlertCircle, Activity, Ruler, Pencil, Trash2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { CompletionStatus, WorkoutType } from '@/lib/types';
 import { getWorkoutTypeBadgeClass } from '@/lib/types';
@@ -25,7 +26,12 @@ interface JournalEntryProps {
     notes: string | null;
     created_at: string;
     scheduled_workouts: WorkoutData | null;
+    // Personal workout fields
+    workout_date?: string | null;
+    workout_type?: WorkoutType | null;
   };
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
 const FEELING_LABELS: Record<string, { label: string; emoji: string }> = {
@@ -34,6 +40,16 @@ const FEELING_LABELS: Record<string, { label: string; emoji: string }> = {
   average: { label: 'Average', emoji: '😐' },
   tired: { label: 'Tired', emoji: '😓' },
   weak: { label: 'Weak', emoji: '😫' },
+};
+
+const WORKOUT_TYPE_LABELS: Record<string, string> = {
+  easy: 'Easy Run',
+  tempo: 'Tempo',
+  interval: 'Interval',
+  long: 'Long Run',
+  rest: 'Rest',
+  race: 'Race',
+  other: 'Other',
 };
 
 function getCompletionIcon(status: CompletionStatus | null) {
@@ -62,15 +78,22 @@ function getCompletionLabel(status: CompletionStatus | null) {
   }
 }
 
-export function JournalEntry({ log }: JournalEntryProps) {
+export function JournalEntry({ log, onEdit, onDelete }: JournalEntryProps) {
   const workout = log.scheduled_workouts;
-  if (!workout) return null;
+  const isPersonal = !workout;
+
+  // For personal workouts, derive title/type/date from the log itself
+  const title = workout?.title || (log.workout_type ? WORKOUT_TYPE_LABELS[log.workout_type] || 'Workout' : 'Personal Workout');
+  const type = workout?.type || log.workout_type;
+  const dateStr = workout?.scheduled_date || log.workout_date;
+
+  if (!dateStr) return null;
 
   const feelingData = log.how_felt ? FEELING_LABELS[log.how_felt] : null;
   const isCustomFeeling = log.how_felt && !FEELING_LABELS[log.how_felt];
 
   return (
-    <Card className="transition-shadow hover:shadow-md">
+    <Card className={cn('transition-shadow hover:shadow-md', isPersonal && 'border-l-2 border-l-primary/40')}>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           {/* Completion indicator */}
@@ -82,17 +105,36 @@ export function JournalEntry({ log }: JournalEntryProps) {
             {/* Header row */}
             <div className="flex items-center justify-between gap-2 mb-2">
               <div className="flex items-center gap-2 min-w-0">
-                <h3 className="font-medium truncate">{workout.title}</h3>
-                <Badge 
-                  variant="outline" 
-                  className={cn('text-xs capitalize flex-shrink-0', getWorkoutTypeBadgeClass(workout.type))}
-                >
-                  {workout.type}
-                </Badge>
+                <h3 className="font-medium truncate">{title}</h3>
+                {type && (
+                  <Badge
+                    variant="outline"
+                    className={cn('text-xs capitalize flex-shrink-0', getWorkoutTypeBadgeClass(type))}
+                  >
+                    {type}
+                  </Badge>
+                )}
+                {isPersonal && (
+                  <Badge variant="secondary" className="text-xs flex-shrink-0">
+                    Personal
+                  </Badge>
+                )}
               </div>
-              <time className="text-sm text-muted-foreground flex-shrink-0">
-                {format(new Date(workout.scheduled_date), 'MMM d, yyyy')}
-              </time>
+              <div className="flex items-center gap-1 flex-shrink-0">
+                {isPersonal && onEdit && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onEdit}>
+                    <Pencil className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                {isPersonal && onDelete && (
+                  <Button variant="ghost" size="icon" className="h-7 w-7 text-destructive hover:text-destructive" onClick={onDelete}>
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                )}
+                <time className="text-sm text-muted-foreground">
+                  {format(new Date(dateStr), 'MMM d, yyyy')}
+                </time>
+              </div>
             </div>
 
             {/* Stats row */}
@@ -100,27 +142,27 @@ export function JournalEntry({ log }: JournalEntryProps) {
               <span className="flex items-center gap-1">
                 {getCompletionLabel(log.completion_status)}
               </span>
-              
+
               {log.effort_level && (
                 <span className="flex items-center gap-1">
                   <Activity className="h-4 w-4" />
                   RPE: {log.effort_level}/10
                 </span>
               )}
-              
+
               {log.distance_value && (
                 <span className="flex items-center gap-1">
                   <Ruler className="h-4 w-4" />
                   {log.distance_value} {log.distance_unit || 'miles'}
                 </span>
               )}
-              
+
               {feelingData && (
                 <span>
                   {feelingData.emoji} {feelingData.label}
                 </span>
               )}
-              
+
               {isCustomFeeling && (
                 <span className="italic">"{log.how_felt}"</span>
               )}
