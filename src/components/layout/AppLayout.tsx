@@ -40,7 +40,7 @@ const navigation: NavItem[] = [
   { name: 'Journal', href: '/journal', icon: BookOpen, athleteOnly: true },
   { name: 'Parent Access', href: '/parent-access', icon: Users, athleteOnly: true },
   { name: 'Athletes', href: '/athletes', icon: Users, coachOnly: true },
-  { name: 'Records', href: '/records', icon: Trophy, coachOnly: true },
+  { name: 'Records', href: '/records', icon: Trophy, hideForParent: true },
   { name: 'Audit Log', href: '/audit-log', icon: History, coachOnly: true },
   { name: 'Team Settings', href: '/team-settings', icon: Settings, coachOnly: true },
   { name: 'Link Child', href: '/link-child', icon: Link2, parentOnly: true },

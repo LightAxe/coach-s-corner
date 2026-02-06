@@ -17,6 +17,7 @@ import { JournalEntry } from '@/components/journal/JournalEntry';
 import { RaceEntry } from '@/components/journal/RaceEntry';
 import { PaginationControls } from '@/components/PaginationControls';
 import { PersonalWorkoutDialog } from '@/components/workouts/PersonalWorkoutDialog';
+import { MyRecords } from '@/components/journal/MyRecords';
 
 type DateRange = {
   from: Date | undefined;
@@ -376,6 +377,11 @@ export default function TrainingJournal() {
                 </CardContent>
               </Card>
             </div>
+
+            {/* My Records - PR Progression */}
+            {!racesLoading && raceResults && raceResults.length > 0 && (
+              <MyRecords raceResults={raceResults} />
+            )}
 
             {/* Races Timeline */}
             {racesLoading ? (
