@@ -67,6 +67,7 @@ interface ExportData {
   teamMemberships?: Record<string, unknown>[];
   workoutLogs?: Record<string, unknown>[];
   raceResults?: Record<string, unknown>[];
+  attendance?: Record<string, unknown>[];
   // Coach-specific
   teams?: Record<string, unknown>[];
   teamAthletes?: Record<string, unknown>[];
@@ -80,6 +81,7 @@ interface ExportData {
   linkedChildren?: Record<string, unknown>[];
   childrenWorkoutLogs?: Record<string, unknown>[];
   childrenRaceResults?: Record<string, unknown>[];
+  childrenAttendance?: Record<string, unknown>[];
 }
 
 async function getAthleteData(supabase: SupabaseClient, userId: string): Promise<Partial<ExportData>> {
@@ -124,6 +126,17 @@ async function getAthleteData(supabase: SupabaseClient, userId: string): Promise
     raceResults = results || [];
   }
 
+  // Get attendance records
+  let attendance: Record<string, unknown>[] = [];
+  if (teamAthleteIds.length > 0) {
+    const { data: records } = await supabase
+      .from("attendance")
+      .select("*")
+      .in("team_athlete_id", teamAthleteIds)
+      .order("date", { ascending: false });
+    attendance = records || [];
+  }
+
   return {
     profile,
     teamMemberships: (teamMemberships || []).map((tm: Record<string, unknown>) => ({
@@ -146,6 +159,7 @@ async function getAthleteData(supabase: SupabaseClient, userId: string): Promise
       races: undefined,
       distances: undefined,
     })),
+    attendance,
   };
 }
 
@@ -172,6 +186,7 @@ async function getCoachData(supabase: SupabaseClient, userId: string): Promise<P
       auditLogs: [],
       seasons: [],
       races: [],
+      attendance: [],
     };
   }
 
@@ -238,6 +253,17 @@ async function getCoachData(supabase: SupabaseClient, userId: string): Promise<P
     allRaceResults = results || [];
   }
 
+  // Get all attendance records for owned teams
+  let allAttendance: Record<string, unknown>[] = [];
+  if (teamIds.length > 0) {
+    const { data: records } = await supabase
+      .from("attendance")
+      .select("*, team_athletes(first_name, last_name)")
+      .in("team_id", teamIds)
+      .order("date", { ascending: false });
+    allAttendance = records || [];
+  }
+
   return {
     ...athleteData,
     // Override workout logs and race results with full team data
@@ -271,6 +297,12 @@ async function getCoachData(supabase: SupabaseClient, userId: string): Promise<P
       ...r,
       distance_name: (r.distances as { name: string } | null)?.name,
       distances: undefined,
+    })),
+    attendance: allAttendance.map((a: Record<string, unknown>) => ({
+      ...a,
+      athlete_first_name: (a.team_athletes as { first_name: string } | null)?.first_name,
+      athlete_last_name: (a.team_athletes as { last_name: string } | null)?.last_name,
+      team_athletes: undefined,
     })),
   };
 }
@@ -346,11 +378,28 @@ async function getParentData(supabase: SupabaseClient, userId: string): Promise<
     }));
   }
 
+  // Get attendance for linked children
+  let childrenAttendance: Record<string, unknown>[] = [];
+  if (childAthleteIds.length > 0) {
+    const { data: records } = await supabase
+      .from("attendance")
+      .select("*, team_athletes(first_name, last_name)")
+      .in("team_athlete_id", childAthleteIds)
+      .order("date", { ascending: false });
+    childrenAttendance = (records || []).map((a: Record<string, unknown>) => ({
+      ...a,
+      athlete_first_name: (a.team_athletes as { first_name: string } | null)?.first_name,
+      athlete_last_name: (a.team_athletes as { last_name: string } | null)?.last_name,
+      team_athletes: undefined,
+    }));
+  }
+
   return {
     profile,
     linkedChildren,
     childrenWorkoutLogs,
     childrenRaceResults,
+    childrenAttendance,
   };
 }
 
@@ -372,6 +421,9 @@ function createZipFile(data: ExportData, role: string): Uint8Array {
     }
     if (data.raceResults?.length) {
       files["race_results.csv"] = encoder.encode(arrayToCSV(data.raceResults));
+    }
+    if (data.attendance?.length) {
+      files["attendance.csv"] = encoder.encode(arrayToCSV(data.attendance));
     }
   } else if (role === "coach") {
     if (data.teamMemberships?.length) {
@@ -407,6 +459,9 @@ function createZipFile(data: ExportData, role: string): Uint8Array {
     if (data.auditLogs?.length) {
       files["audit_logs.csv"] = encoder.encode(arrayToCSV(data.auditLogs));
     }
+    if (data.attendance?.length) {
+      files["attendance.csv"] = encoder.encode(arrayToCSV(data.attendance));
+    }
   } else if (role === "parent") {
     if (data.linkedChildren?.length) {
       files["linked_children.csv"] = encoder.encode(arrayToCSV(data.linkedChildren));
@@ -416,6 +471,9 @@ function createZipFile(data: ExportData, role: string): Uint8Array {
     }
     if (data.childrenRaceResults?.length) {
       files["children_race_results.csv"] = encoder.encode(arrayToCSV(data.childrenRaceResults));
+    }
+    if (data.childrenAttendance?.length) {
+      files["children_attendance.csv"] = encoder.encode(arrayToCSV(data.childrenAttendance));
     }
   }
 

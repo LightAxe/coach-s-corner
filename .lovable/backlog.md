@@ -92,27 +92,34 @@ Parents and athletes want the meet schedule and practice calendar in their phone
 
 ---
 
-## 5. Attendance Tracking
+## ~~5. Attendance Tracking~~ ✅
 
-**Status:** Needs scoping
-**Owner:** Both (Lovable for DB, Claude Code for UI)
+**Status:** Complete (v1)
+**Owner:** Lovable (DB/migration) + Claude Code (UI + export)
 **Priority:** Medium
 
 Track who shows up to practice. Many schools require attendance reports from coaches.
 
-### Requirements
-- Daily attendance roster for coaches to mark present/absent
-- Quick "mark all present" with individual toggles
-- Attendance history and reporting (exportable)
-- Absence notes/reasons (optional)
+### v1 Scope
+- **Coach-only entry**, once per day per athlete
+- **Four statuses:** Present / Absent / Excused / Late (enum)
+- Optional note per athlete per day (e.g. "doctor's appointment")
+- **Attendance page** (new route, coach-only nav item) with date picker defaulting to today
+- Roster list with status toggle buttons (P/A/E/L) and optional note field
+- "Mark all present" quick action
+- Attendance data included in `export-data` Edge Function (all three roles)
 
-### Database Changes Needed
-- New `attendance` table: `id`, `team_id`, `team_athlete_id`, `date`, `present` (boolean), `note`, `created_by`
-- RLS: coaches can create/edit, athletes can view their own
+### Remaining v1 work
+- Attendance history view — past days in calendar or table format, click to view/edit
+- Per-athlete attendance summary (rate, streaks) on athlete detail page or journal
 
-### Open Questions
-- Self check-in by athletes (GPS-based or QR code) or coach-only entry?
-- Track by practice session or just by date?
+### Out of Scope (v1)
+- Athlete self check-in (GPS/QR)
+- Multiple sessions per day
+- Absence notifications
+
+### Future Enhancement: Parent Daily Digest
+Parent opt-in daily digest notification summarizing their athlete's attendance when marked as anything other than present (absent, excused, or late). Daily digest rather than instant alert — gives coaches time to correct mistakes before parents see them. Low technical cost (notification trigger on attendance insert) but should wait until the core attendance workflow is proven and coaches are actively using it.
 
 ---
 
@@ -199,3 +206,6 @@ Implemented. `useSeasonMileage` hook sums scheduled + personal workout distances
 
 ### ~~Calendar Export (iCal)~~ ✅
 Implemented. `calendar-feed` Edge Function serves iCal feed via token-based auth (`calendar_feed_token` on `teams` table). Subscribe dialog on Calendar page with content type picker (races/workouts/all), copy URL, and quick-add links for Google Calendar and Apple Calendar.
+
+### ~~Attendance Tracking~~ ✅
+Implemented (v1). `attendance` table with four-status enum (present/absent/excused/late). Coach-only Attendance page with date navigation, roster list with P/A/E/L toggle buttons, optional notes, and "Mark All Present" bulk action. Attendance data added to `export-data` Edge Function for all three roles (coach, athlete, parent). History view and per-athlete summary are remaining v1 items.
