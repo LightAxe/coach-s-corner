@@ -5,11 +5,13 @@ import { AnnouncementCard } from '@/components/dashboard/AnnouncementCard';
 import { WeekPreview } from '@/components/dashboard/WeekPreview';
 import { QuickStats } from '@/components/dashboard/QuickStats';
 import { RecentAthleteActivity } from '@/components/dashboard/RecentAthleteActivity';
+import { WorkoutCompliance } from '@/components/dashboard/WorkoutCompliance';
 import { ParentDashboard } from '@/components/dashboard/ParentDashboard';
 import { ParentAccessCard } from '@/components/dashboard/ParentAccessCard';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveSeason } from '@/hooks/useSeasons';
 import { useAnnouncements } from '@/hooks/useAnnouncements';
+import { useTeamAthletes } from '@/hooks/useTeamAthletes';
 import { 
   useTodayWorkout, 
   useTodayRace,
@@ -40,8 +42,12 @@ export default function Dashboard() {
   const { data: weekRaces = [], isLoading: weekRacesLoading } = useWeekRaces(teamId);
   const { data: announcements = [], isLoading: announcementsLoading } = useAnnouncements(teamId);
   const { data: stats, isLoading: statsLoading } = useTeamStats(teamId, activeSeason?.id);
+  const { data: teamAthletes = [], isLoading: athletesLoading } = useTeamAthletes(
+    isCoach ? teamId : undefined,
+    activeSeason?.id
+  );
   const { data: recentActivity = [], isLoading: activityLoading } = useRecentAthleteActivity(
-    isCoach ? teamId : undefined, 
+    isCoach ? teamId : undefined,
     10
   );
 
@@ -72,6 +78,13 @@ export default function Dashboard() {
               <TodayRace race={todayRace} isLoading={raceLoading} />
             ) : (
               <TodayWorkout workout={todayWorkout} isLoading={todayLoading} />
+            )}
+            {isCoach && (
+              <WorkoutCompliance
+                workout={todayWorkout ?? null}
+                athletes={teamAthletes}
+                isLoading={todayLoading || athletesLoading}
+              />
             )}
             <AnnouncementCard announcements={announcements} isLoading={announcementsLoading} isCoach={isCoach} />
           </div>
