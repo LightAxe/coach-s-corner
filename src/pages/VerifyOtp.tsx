@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
-import { Loader2, ArrowLeft, Mail } from 'lucide-react';
+import { Loader2, ArrowLeft, Mail, Phone } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,26 +16,26 @@ export default function VerifyOtp() {
   const location = useLocation();
   const { toast } = useToast();
 
-  // Get email from location state (passed from login or signup)
-  const email = location.state?.email as string;
+  // Support both old { email } and new { identifier, method } state
+  const identifier = (location.state?.identifier ?? location.state?.email) as string;
+  const method = (location.state?.method ?? 'email') as 'email' | 'sms';
+  const display = (location.state?.display ?? identifier) as string;
   const isSignup = location.state?.isSignup as boolean;
 
   useEffect(() => {
-    // Redirect if no email in state
-    if (!email) {
+    if (!identifier) {
       navigate('/login');
     }
-  }, [email, navigate]);
+  }, [identifier, navigate]);
 
   const handleVerify = async () => {
     if (otp.length !== 6) return;
 
     setIsLoading(true);
-    const { error, isNewUser, needsSignup } = await verifyOtp(email, otp);
+    const { error, isNewUser, needsSignup } = await verifyOtp(identifier, otp, method);
     setIsLoading(false);
 
     if (error) {
-      // If they need to sign up first, redirect them
       if (needsSignup) {
         toast({
           title: 'Account not found',
@@ -58,9 +58,7 @@ export default function VerifyOtp() {
         description: isSignup ? 'Your account has been created successfully.' : 'You have been signed in.',
       });
 
-      // Redirect based on context
       if (isSignup && pendingSignupData) {
-        // New signup - redirect based on role
         if (pendingSignupData.role === 'coach') {
           navigate('/create-team');
         } else if (pendingSignupData.role === 'parent') {
@@ -69,7 +67,6 @@ export default function VerifyOtp() {
           navigate('/join-team');
         }
       } else {
-        // Returning user - go to dashboard
         navigate('/');
       }
     }
@@ -77,7 +74,7 @@ export default function VerifyOtp() {
 
   const handleResend = async () => {
     setIsResending(true);
-    const { error } = await sendOtp(email);
+    const { error } = await sendOtp(identifier, method);
     setIsResending(false);
 
     if (error) {
@@ -89,31 +86,32 @@ export default function VerifyOtp() {
     } else {
       toast({
         title: 'Code sent!',
-        description: 'A new verification code has been sent to your email.',
+        description: `A new verification code has been sent to your ${method === 'sms' ? 'phone' : 'email'}.`,
       });
     }
   };
 
-  // Auto-submit when 6 digits entered
   useEffect(() => {
     if (otp.length === 6) {
       handleVerify();
     }
   }, [otp]);
 
-  if (!email) return null;
+  if (!identifier) return null;
+
+  const IconComponent = method === 'sms' ? Phone : Mail;
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-4">
-            <Mail className="h-6 w-6 text-primary-foreground" />
+            <IconComponent className="h-6 w-6 text-primary-foreground" />
           </div>
-          <CardTitle className="text-2xl font-heading">Check your email</CardTitle>
+          <CardTitle className="text-2xl font-heading">Check your {method === 'sms' ? 'phone' : 'email'}</CardTitle>
           <CardDescription>
             We sent a 6-digit code to<br />
-            <span className="font-medium text-foreground">{email}</span>
+            <span className="font-medium text-foreground">{display}</span>
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">

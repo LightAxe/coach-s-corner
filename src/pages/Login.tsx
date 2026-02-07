@@ -3,16 +3,23 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Loader2, Mail } from 'lucide-react';
+import { Loader2, LogIn } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { useToast } from '@/hooks/use-toast';
+import { detectIdentifierType, maskPhone } from '@/lib/phone';
 
 const loginSchema = z.object({
-  email: z.string().email('Please enter a valid email'),
+  identifier: z.string()
+    .min(1, 'Please enter your email or phone number')
+    .max(255, 'Input too long')
+    .refine(
+      (val) => detectIdentifierType(val) !== null,
+      'Please enter a valid email or US phone number'
+    ),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
@@ -26,13 +33,16 @@ export default function Login() {
   const form = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: '',
+      identifier: '',
     },
   });
 
   const onSubmit = async (data: LoginFormData) => {
+    const detected = detectIdentifierType(data.identifier);
+    if (!detected) return;
+
     setIsLoading(true);
-    const { error } = await sendOtp(data.email);
+    const { error } = await sendOtp(detected.identifier, detected.method);
     setIsLoading(false);
 
     if (error) {
@@ -42,11 +52,21 @@ export default function Login() {
         variant: 'destructive',
       });
     } else {
+      const display = detected.method === 'sms'
+        ? maskPhone(detected.identifier)
+        : detected.identifier;
       toast({
         title: 'Code sent!',
-        description: 'Check your email for the verification code.',
+        description: `Check your ${detected.method === 'sms' ? 'phone' : 'email'} for the verification code.`,
       });
-      navigate('/verify-otp', { state: { email: data.email, isSignup: false } });
+      navigate('/verify-otp', {
+        state: {
+          identifier: detected.identifier,
+          method: detected.method,
+          display,
+          isSignup: false,
+        },
+      });
     }
   };
 
@@ -58,21 +78,20 @@ export default function Login() {
             <span className="text-primary-foreground font-bold text-lg">FP</span>
           </div>
           <CardTitle className="text-2xl font-heading">Welcome back</CardTitle>
-          <CardDescription>Enter your email to receive a sign-in code</CardDescription>
+          <CardDescription>Enter your email or phone number to receive a sign-in code</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
               <FormField
                 control={form.control}
-                name="email"
+                name="identifier"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Email</FormLabel>
+                    <FormLabel>Email or phone number</FormLabel>
                     <FormControl>
                       <Input 
-                        type="email" 
-                        placeholder="you@email.com" 
+                        placeholder="you@email.com or (555) 123-4567" 
                         {...field} 
                       />
                     </FormControl>
@@ -84,7 +103,7 @@ export default function Login() {
                 {isLoading ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
-                  <Mail className="mr-2 h-4 w-4" />
+                  <LogIn className="mr-2 h-4 w-4" />
                 )}
                 Send me a code
               </Button>
