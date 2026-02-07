@@ -254,26 +254,6 @@ export function useTeamStats(teamId: string | undefined, seasonId?: string | nul
   });
 }
 
-// Fetch team members (athletes) with profiles
-export function useTeamAthletes(teamId: string | undefined) {
-  return useQuery({
-    queryKey: ['team-athletes', teamId],
-    queryFn: async () => {
-      if (!teamId) return [];
-      
-      const { data, error } = await supabase
-        .from('team_memberships')
-        .select('*, profiles(*)')
-        .eq('team_id', teamId)
-        .eq('role', 'athlete');
-      
-      if (error) throw error;
-      return data as TeamMemberWithProfile[];
-    },
-    enabled: !!teamId,
-  });
-}
-
 // Fetch all team members with profiles
 export function useTeamMembers(teamId: string | undefined) {
   return useQuery({

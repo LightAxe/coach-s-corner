@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { Navigate } from 'react-router-dom';
 import { History, ChevronDown, ChevronRight, User, Plus, Pencil, Trash2 } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { useAuth } from '@/contexts/AuthContext';
 import { useAuditLogs, type AuditLogEntry } from '@/hooks/useAuditLogs';
 import { usePagination } from '@/hooks/usePagination';
 import { PaginationControls } from '@/components/PaginationControls';
@@ -152,7 +154,12 @@ function AuditLogItem({ log }: { log: AuditLogEntry }) {
 }
 
 export default function AuditLogPage() {
+  const { isCoach } = useAuth();
   const { data: logs = [], isLoading } = useAuditLogs(500);
+
+  if (!isCoach) {
+    return <Navigate to="/" replace />;
+  }
 
   const {
     paginatedItems: paginatedLogs,

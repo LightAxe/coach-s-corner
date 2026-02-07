@@ -42,9 +42,13 @@ function arrayToCSV(data: Record<string, unknown>[]): string {
       headers.map(header => {
         const value = row[header];
         if (value === null || value === undefined) return "";
-        const stringValue = typeof value === "object"
+        let stringValue = typeof value === "object"
           ? JSON.stringify(value)
           : String(value);
+        // Prevent CSV formula injection by prefixing with single quote
+        if (/^[=+\-@\t\r]/.test(stringValue)) {
+          stringValue = "'" + stringValue;
+        }
         // Escape quotes and wrap in quotes if contains comma, quote, or newline
         if (stringValue.includes(",") || stringValue.includes('"') || stringValue.includes("\n")) {
           return `"${stringValue.replace(/"/g, '""')}"`;

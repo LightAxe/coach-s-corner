@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { format, subDays, differenceInCalendarDays, parseISO } from 'date-fns';
+import { format, subDays, differenceInCalendarDays, parseISO, addDays } from 'date-fns';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAthleteAttendance } from '@/hooks/useAttendance';
@@ -39,11 +39,17 @@ export function AthleteAttendanceSummary({ teamAthleteId }: AthleteAttendanceSum
     const presentOrLate = records.filter(r => r.status === 'present' || r.status === 'late').length;
     const rate = Math.round((presentOrLate / total) * 100);
 
-    // Current streak: consecutive present/late days from most recent
+    // Current streak: consecutive calendar days with present/late from most recent
     let streak = 0;
+    let expectedDate: Date | null = null;
     for (const record of records) {
+      const recordDate = parseISO(record.date);
+      if (expectedDate && differenceInCalendarDays(expectedDate, recordDate) > 0) {
+        break; // gap in dates
+      }
       if (record.status === 'present' || record.status === 'late') {
         streak++;
+        expectedDate = addDays(recordDate, -1);
       } else {
         break;
       }

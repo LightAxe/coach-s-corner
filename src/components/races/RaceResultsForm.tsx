@@ -40,28 +40,32 @@ export function RaceResultsForm({ raceId, teamId, defaultDistanceId, onSaved }: 
 
   const [results, setResults] = useState<AthleteResult[]>([]);
   const [saving, setSaving] = useState(false);
-  const [initialized, setInitialized] = useState(false);
+  const [prevAthleteIds, setPrevAthleteIds] = useState<string>('');
 
-  // Initialize results from athletes and existing data - only once when data loads
+  // Initialize/re-initialize results when athletes or existing results change
   useEffect(() => {
-    if (athletes.length > 0 && !initialized) {
-      const athleteResults: AthleteResult[] = athletes.map(athlete => {
-        const existing = existingResults.find(
-          (r: any) => r.team_athlete_id === athlete.id
-        );
-        return {
-          athleteId: athlete.id,
-          athleteName: `${athlete.first_name} ${athlete.last_name}`,
-          time: existing ? formatTime(Number(existing.time_seconds)) : '',
-          place: existing?.place?.toString() || '',
-          distanceId: existing?.distance_id || defaultDistanceId,
-          existingResultId: existing?.id,
-        };
-      });
-      setResults(athleteResults);
-      setInitialized(true);
-    }
-  }, [athletes, existingResults, defaultDistanceId, initialized]);
+    if (athletes.length === 0) return;
+    const currentIds = athletes.map(a => a.id).sort().join(',');
+    if (currentIds === prevAthleteIds) return;
+    setPrevAthleteIds(currentIds);
+
+    const athleteResults: AthleteResult[] = athletes.map(athlete => {
+      const existing = existingResults.find(
+        (r: any) => r.team_athlete_id === athlete.id
+      );
+      // Preserve any in-progress edits for athletes already in the form
+      const prev = results.find(r => r.athleteId === athlete.id);
+      return {
+        athleteId: athlete.id,
+        athleteName: `${athlete.first_name} ${athlete.last_name}`,
+        time: prev?.time ?? (existing ? formatTime(Number(existing.time_seconds)) : ''),
+        place: prev?.place ?? (existing?.place?.toString() || ''),
+        distanceId: prev?.distanceId ?? (existing?.distance_id || defaultDistanceId),
+        existingResultId: existing?.id,
+      };
+    });
+    setResults(athleteResults);
+  }, [athletes, existingResults, defaultDistanceId]);
 
   const updateAthleteResult = (athleteId: string, field: 'time' | 'place' | 'distanceId', value: string) => {
     setResults(prev =>

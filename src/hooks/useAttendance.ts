@@ -78,6 +78,7 @@ export function useUpsertAttendance() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['attendance', data.team_id, data.date] });
       queryClient.invalidateQueries({ queryKey: ['attendance-range', data.team_id] });
+      queryClient.invalidateQueries({ queryKey: ['athlete-attendance', data.team_athlete_id] });
     },
   });
 }
@@ -107,6 +108,14 @@ export function useBulkUpsertAttendance() {
         const { team_id, date } = variables[0];
         queryClient.invalidateQueries({ queryKey: ['attendance', team_id, date] });
         queryClient.invalidateQueries({ queryKey: ['attendance-range', team_id] });
+      }
+      // Invalidate per-athlete caches for all affected athletes
+      const seen = new Set<string>();
+      for (const r of variables) {
+        if (!seen.has(r.team_athlete_id)) {
+          seen.add(r.team_athlete_id);
+          queryClient.invalidateQueries({ queryKey: ['athlete-attendance', r.team_athlete_id] });
+        }
       }
     },
   });

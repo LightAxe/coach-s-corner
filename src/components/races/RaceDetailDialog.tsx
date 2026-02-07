@@ -36,10 +36,10 @@ export function RaceDetailDialog({ race, open, onOpenChange }: RaceDetailDialogP
   const deleteRace = useDeleteRace();
   const { data: distances = [] } = useDistances();
 
-  // Get the first distance as default for the results form
-  const defaultDistanceId = distances[0]?.id || '';
-
   if (!race) return null;
+
+  // Use race's own distance if set, otherwise fall back to first available
+  const defaultDistanceId = race.distance_id || distances[0]?.id || '';
 
   const handleDelete = async () => {
     try {

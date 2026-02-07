@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { format } from 'date-fns';
+import { Navigate } from 'react-router-dom';
 import { Users, Copy, Check, Loader2, Trash2, UserCheck } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +16,7 @@ import {
 } from '@/hooks/useParentData';
 
 export default function ParentAccess() {
-  const { currentTeam, profile } = useAuth();
+  const { currentTeam, profile, isAthlete } = useAuth();
   const { toast } = useToast();
   const { data: currentAthlete, isLoading: athleteLoading } = useCurrentAthlete(currentTeam?.id);
   
@@ -27,6 +28,10 @@ export default function ParentAccess() {
   const { data: linkedParents = [], isLoading: parentsLoading } = useLinkedParents(teamAthleteId);
   const generateCode = useGenerateParentCode();
   const deleteCode = useDeleteParentCode();
+
+  if (!isAthlete) {
+    return <Navigate to="/" replace />;
+  }
 
   const handleGenerate = async () => {
     if (!teamAthleteId) return;

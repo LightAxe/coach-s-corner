@@ -118,8 +118,14 @@ export default function Attendance() {
 
   const handleNoteBlur = useCallback((athleteId: string) => {
     const existingRecord = attendanceMap[athleteId];
-    if (!existingRecord || !currentTeam?.id || !user?.id) return;
+    if (!currentTeam?.id || !user?.id) return;
     const newNote = notes[athleteId] ?? null;
+    if (!existingRecord) {
+      if (newNote) {
+        toast.info('Select a status first to save the note');
+      }
+      return;
+    }
     if (newNote === (existingRecord.note ?? '')) return;
     upsertAttendance.mutate({
       team_id: currentTeam.id,
