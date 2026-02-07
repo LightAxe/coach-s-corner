@@ -31,8 +31,8 @@ interface AuthContextType {
   isParent: boolean;
   pendingSignupData: PendingSignupData | null;
   setPendingSignupData: (data: PendingSignupData | null) => void;
-  sendOtp: (email: string) => Promise<{ error: Error | null }>;
-  verifyOtp: (email: string, token: string) => Promise<{ error: Error | null; isNewUser: boolean; needsSignup?: boolean }>;
+  sendOtp: (identifier: string, method?: 'email' | 'sms') => Promise<{ error: Error | null }>;
+  verifyOtp: (identifier: string, token: string, method?: 'email' | 'sms') => Promise<{ error: Error | null; isNewUser: boolean; needsSignup?: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   setCurrentTeam: (team: { id: string; name: string } | null) => void;
@@ -136,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const sendOtp = async (email: string) => {
+  const sendOtp = async (identifier: string, method: 'email' | 'sms' = 'email') => {
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-otp`,
@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             'Content-Type': 'application/json',
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
-          body: JSON.stringify({ email }),
+          body: JSON.stringify({ identifier, method }),
         }
       );
 
@@ -162,7 +162,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const verifyOtp = async (email: string, token: string) => {
+  const verifyOtp = async (identifier: string, token: string, method: 'email' | 'sms' = 'email') => {
     try {
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-otp`,
@@ -173,7 +173,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
           },
           body: JSON.stringify({
-            email,
+            identifier,
+            method,
             code: token,
             signupData: pendingSignupData ? {
               firstName: pendingSignupData.firstName,

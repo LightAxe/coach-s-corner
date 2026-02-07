@@ -248,20 +248,20 @@ export type Database = {
         Row: {
           action_type: string
           created_at: string
-          email: string
           id: string
+          identifier: string
         }
         Insert: {
           action_type: string
           created_at?: string
-          email: string
           id?: string
+          identifier: string
         }
         Update: {
           action_type?: string
           created_at?: string
-          email?: string
           id?: string
+          identifier?: string
         }
         Relationships: []
       }
