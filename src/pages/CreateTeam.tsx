@@ -146,7 +146,7 @@ export default function CreateTeam() {
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
           <div className="mx-auto w-12 h-12 rounded-xl bg-primary flex items-center justify-center mb-4">
-            <span className="text-primary-foreground font-bold text-lg">XC</span>
+            <span className="text-primary-foreground font-bold text-lg">FP</span>
           </div>
           <CardTitle className="text-2xl font-heading">Create Your Team</CardTitle>
           <CardDescription>

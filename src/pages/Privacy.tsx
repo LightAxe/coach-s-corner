@@ -23,7 +23,7 @@ export default function Privacy() {
             <section>
               <h2 className="text-lg font-semibold">Overview</h2>
               <p className="text-muted-foreground">
-                Coach's Corner ("Training Hub") is a team training management tool for cross country
+                Faster Pack is a team training management tool for cross country
                 and track coaches and their athletes. This policy explains what information we collect,
                 how we use it, and your rights regarding your data.
               </p>

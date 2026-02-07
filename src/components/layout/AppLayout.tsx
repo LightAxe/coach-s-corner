@@ -70,9 +70,9 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="flex items-center justify-between px-4 h-16">
           <Link to="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">XC</span>
+              <span className="text-primary-foreground font-bold text-sm">FP</span>
             </div>
-            <span className="font-heading font-semibold text-lg">Training Hub</span>
+            <span className="font-heading font-semibold text-lg">Faster Pack</span>
           </Link>
           <div className="flex items-center gap-2">
             <ThemeToggle />
@@ -121,11 +121,11 @@ export function AppLayout({ children }: AppLayoutProps) {
           <div className="flex items-center justify-between px-6 h-16 border-b border-border">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold">XC</span>
+                <span className="text-primary-foreground font-bold">FP</span>
               </div>
               <div>
-                <h1 className="font-heading font-semibold text-base">Training Hub</h1>
-                <p className="text-xs text-muted-foreground">Cross Country</p>
+                <h1 className="font-heading font-semibold text-base">Faster Pack</h1>
+                <p className="text-xs text-muted-foreground">Team Training</p>
               </div>
             </div>
             <ThemeToggle />

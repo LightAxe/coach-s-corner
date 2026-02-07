@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "apple-touch-icon.png"],
       manifest: {
-        name: "Coach's Corner",
-        short_name: "Coach's Corner",
+        name: "Faster Pack",
+        short_name: "Faster Pack",
         description: "Team training management for cross country and track coaches",
         theme_color: "#1e40af",
         background_color: "#ffffff",
