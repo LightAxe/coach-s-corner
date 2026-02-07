@@ -160,9 +160,9 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Training Hub <noreply@goatmeal.org>",
+        from: "Faster Pack <noreply@goatmeal.org>",
         to: [email],
-        subject: "Your Training Hub Login Code",
+        subject: "Your Faster Pack Login Code",
         html: `
           <!DOCTYPE html>
           <html>
@@ -181,7 +181,7 @@ serve(async (req) => {
               </h1>
               
               <p style="font-size: 16px; color: #666666; text-align: center; margin: 0 0 32px 0; line-height: 1.5;">
-                Enter this code to sign in to Training Hub:
+                Enter this code to sign in to Faster Pack:
               </p>
               
               <div style="background-color: #f0fdf4; border: 2px solid #16a34a; border-radius: 12px; padding: 24px; text-align: center; margin-bottom: 32px;">

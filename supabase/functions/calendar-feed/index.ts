@@ -141,7 +141,7 @@ SUMMARY:${escapeICalText(workout.title)}`;
 
     const ical = `BEGIN:VCALENDAR
 VERSION:2.0
-PRODID:-//Coach's Corner//Calendar Feed//EN
+PRODID:-//Faster Pack//Calendar Feed//EN
 CALSCALE:GREGORIAN
 METHOD:PUBLISH
 X-WR-CALNAME:${escapeICalText(calendarName)}
