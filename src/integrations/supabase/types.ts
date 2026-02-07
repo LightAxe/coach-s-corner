@@ -1191,6 +1191,14 @@ export type Database = {
         Args: { _profile_id: string; _team_id: string }
         Returns: boolean
       }
+      lookup_team_by_code: {
+        Args: { _code: string }
+        Returns: {
+          code_type: string
+          id: string
+          name: string
+        }[]
+      }
       redeem_parent_link_code: { Args: { _code: string }; Returns: string }
       regenerate_team_code: {
         Args: { _code_type: string; _team_id: string }

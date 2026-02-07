@@ -249,16 +249,16 @@ export default function TeamSettings() {
                   <div className="flex gap-2">
                     <Input
                       id="athlete-code"
-                      value={team.join_code}
+                      value={team.join_code || ''}
                       readOnly
                       className="font-mono text-lg tracking-wider uppercase"
                     />
                     <Button
                       variant="outline"
                       size="icon"
-                      onClick={() => copyToClipboard(team.join_code, 'Athlete join code')}
+                      onClick={() => copyToClipboard(team.join_code || '', 'Athlete join code')}
                     >
-                      {copiedCode === team.join_code ? (
+                      {copiedCode === (team.join_code || '') ? (
                         <Check className="h-4 w-4 text-green-500" />
                       ) : (
                         <Copy className="h-4 w-4" />
