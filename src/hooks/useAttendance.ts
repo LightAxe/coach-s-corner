@@ -38,6 +38,23 @@ export function useAttendanceRange(teamId?: string, startDate?: string, endDate?
   });
 }
 
+// Fetch all attendance records for a single athlete
+export function useAthleteAttendance(teamAthleteId?: string) {
+  return useQuery({
+    queryKey: ['athlete-attendance', teamAthleteId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('attendance')
+        .select('*')
+        .eq('team_athlete_id', teamAthleteId!)
+        .order('date', { ascending: false });
+      if (error) throw error;
+      return data as Attendance[];
+    },
+    enabled: !!teamAthleteId,
+  });
+}
+
 // Upsert a single attendance record
 export function useUpsertAttendance() {
   const queryClient = useQueryClient();

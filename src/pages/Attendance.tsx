@@ -1,17 +1,19 @@
 import { useState, useMemo, useCallback } from 'react';
-import { format, subDays, addDays } from 'date-fns';
+import { format, startOfMonth, endOfMonth } from 'date-fns';
 import { Navigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, CheckCircle2, Users } from 'lucide-react';
+import { CalendarIcon, CheckCircle2, Users } from 'lucide-react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
+import { Calendar } from '@/components/ui/calendar';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useAuth } from '@/contexts/AuthContext';
 import { useActiveSeason } from '@/hooks/useSeasons';
 import { useTeamAthletes } from '@/hooks/useTeamAthletes';
-import { useAttendanceByDate, useUpsertAttendance, useBulkUpsertAttendance } from '@/hooks/useAttendance';
+import { useAttendanceByDate, useAttendanceRange, useUpsertAttendance, useBulkUpsertAttendance } from '@/hooks/useAttendance';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { AttendanceStatus, TeamAthleteWithProfile, Attendance } from '@/lib/types';
@@ -40,6 +42,8 @@ function getAthleteInitials(athlete: TeamAthleteWithProfile): string {
 
 export default function Attendance() {
   const [selectedDate, setSelectedDate] = useState(new Date());
+  const [displayedMonth, setDisplayedMonth] = useState(new Date());
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
   const { currentTeam, isCoach, user } = useAuth();
@@ -54,6 +58,19 @@ export default function Attendance() {
     currentTeam?.id,
     dateStr
   );
+
+  // Fetch attendance for displayed calendar month to show dot indicators
+  const monthStart = format(startOfMonth(displayedMonth), 'yyyy-MM-dd');
+  const monthEnd = format(endOfMonth(displayedMonth), 'yyyy-MM-dd');
+  const { data: monthRecords = [] } = useAttendanceRange(currentTeam?.id, monthStart, monthEnd);
+
+  const daysWithData = useMemo(() => {
+    const set = new Set<string>();
+    for (const record of monthRecords) {
+      set.add(record.date);
+    }
+    return set;
+  }, [monthRecords]);
 
   const upsertAttendance = useUpsertAttendance();
   const bulkUpsert = useBulkUpsertAttendance();
@@ -151,24 +168,51 @@ export default function Attendance() {
         </div>
 
         {/* Date navigation */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="icon" onClick={() => setSelectedDate(d => subDays(d, 1))}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button variant="outline" size="icon" onClick={() => setSelectedDate(d => addDays(d, 1))}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-            {!isToday && (
-              <Button variant="ghost" onClick={() => setSelectedDate(new Date())}>
-                Today
+        <div className="flex items-center gap-2">
+          <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+            <PopoverTrigger asChild>
+              <Button variant="outline" className="gap-2">
+                <CalendarIcon className="h-4 w-4" />
+                <span className="font-semibold">{format(selectedDate, 'EEEE, MMMM d, yyyy')}</span>
+                {isToday && <Badge variant="default" className="text-xs">Today</Badge>}
               </Button>
-            )}
-          </div>
-          <h2 className="text-lg font-semibold">
-            {format(selectedDate, 'EEEE, MMMM d, yyyy')}
-            {isToday && <Badge variant="default" className="ml-2 text-xs">Today</Badge>}
-          </h2>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={selectedDate}
+                onSelect={(date) => {
+                  if (date) {
+                    setSelectedDate(date);
+                    setCalendarOpen(false);
+                  }
+                }}
+                month={displayedMonth}
+                onMonthChange={setDisplayedMonth}
+                modifiers={{ hasData: (date) => daysWithData.has(format(date, 'yyyy-MM-dd')) }}
+                modifiersStyles={{ hasData: { position: 'relative' } }}
+                modifiersClassNames={{ hasData: 'attendance-has-data' }}
+              />
+              <style>{`
+                .attendance-has-data::after {
+                  content: '';
+                  position: absolute;
+                  bottom: 2px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  width: 5px;
+                  height: 5px;
+                  border-radius: 50%;
+                  background-color: #22c55e;
+                }
+              `}</style>
+            </PopoverContent>
+          </Popover>
+          {!isToday && (
+            <Button variant="ghost" onClick={() => setSelectedDate(new Date())}>
+              Today
+            </Button>
+          )}
         </div>
 
         {/* Summary bar */}

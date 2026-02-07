@@ -18,6 +18,7 @@ import { GenerateParentCodeDialog } from '@/components/athletes/GenerateParentCo
 import { EditAthleteDialog } from '@/components/athletes/EditAthleteDialog';
 import { RemoveAthleteDialog } from '@/components/athletes/RemoveAthleteDialog';
 import { ACWRIndicator } from '@/components/athletes/ACWRIndicator';
+import { AthleteAttendanceSummary } from '@/components/athletes/AthleteAttendanceSummary';
 import { AthleteWorkoutHistory } from '@/components/athletes/AthleteWorkoutHistory';
 import { cn } from '@/lib/utils';
 import { getWorkoutTypeBadgeClass, type ScheduledWorkout, type TeamAthleteWithProfile } from '@/lib/types';
@@ -187,6 +188,9 @@ export default function AthleteDetail() {
 
         {/* ACWR Training Load Indicator */}
         <ACWRIndicator teamAthleteId={id!} />
+
+        {/* Attendance Summary */}
+        <AthleteAttendanceSummary teamAthleteId={id!} />
 
         {/* Recent Workouts with Log Ability */}
         <Card>
