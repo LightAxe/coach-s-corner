@@ -63,6 +63,8 @@ export default function VerifyOtp() {
         // New signup - redirect based on role
         if (pendingSignupData.role === 'coach') {
           navigate('/create-team');
+        } else if (pendingSignupData.role === 'parent') {
+          navigate('/link-child');
         } else {
           navigate('/join-team');
         }

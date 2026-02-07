@@ -14,6 +14,8 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useActiveSeason } from '@/hooks/useSeasons';
 import { useTeamAthletes } from '@/hooks/useTeamAthletes';
 import { useAttendanceByDate, useAttendanceRange, useUpsertAttendance, useBulkUpsertAttendance } from '@/hooks/useAttendance';
+import { useCurrentAthlete } from '@/hooks/useCurrentAthlete';
+import { AthleteAttendanceSummary } from '@/components/athletes/AthleteAttendanceSummary';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import type { AttendanceStatus, TeamAthleteWithProfile, Attendance } from '@/lib/types';
@@ -46,7 +48,8 @@ export default function Attendance() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
-  const { currentTeam, isCoach, user } = useAuth();
+  const { currentTeam, isCoach, isAthlete, isParent, user } = useAuth();
+  const { data: currentAthlete } = useCurrentAthlete(currentTeam?.id);
   const { data: activeSeason } = useActiveSeason(currentTeam?.id);
   const { data: athletes = [], isLoading: athletesLoading } = useTeamAthletes(
     currentTeam?.id,
@@ -75,8 +78,33 @@ export default function Attendance() {
   const upsertAttendance = useUpsertAttendance();
   const bulkUpsert = useBulkUpsertAttendance();
 
-  if (!isCoach) {
+  if (isParent) {
     return <Navigate to="/" replace />;
+  }
+
+  // Athlete view: show their own attendance summary
+  if (isAthlete) {
+    return (
+      <AppLayout>
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-heading font-bold">My Attendance</h1>
+            <p className="text-muted-foreground">Your practice attendance record</p>
+          </div>
+          {currentAthlete ? (
+            <AthleteAttendanceSummary teamAthleteId={currentAthlete.id} />
+          ) : (
+            <Card>
+              <CardContent className="py-8">
+                <p className="text-sm text-muted-foreground text-center">
+                  Your account hasn't been linked to the roster yet. Ask your coach to link your account.
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </AppLayout>
+    );
   }
 
   const isLoading = athletesLoading || attendanceLoading;

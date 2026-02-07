@@ -1,13 +1,24 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Link2, Loader2, UserPlus, CheckCircle } from 'lucide-react';
+import { Link2, Loader2, UserPlus, CheckCircle, Unlink } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { useLinkedChildren, useRedeemParentCode } from '@/hooks/useParentData';
+import { useLinkedChildren, useRedeemParentCode, useUnlinkChild } from '@/hooks/useParentData';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 export default function LinkChild() {
   const navigate = useNavigate();
@@ -18,6 +29,7 @@ export default function LinkChild() {
   
   const { data: linkedChildren = [], isLoading } = useLinkedChildren();
   const redeemCode = useRedeemParentCode();
+  const unlinkChild = useUnlinkChild();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,6 +105,46 @@ export default function LinkChild() {
                       {child.team_athlete.teams?.name || 'Team'}
                     </p>
                   </div>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive">
+                        <Unlink className="h-4 w-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Unlink from {child.team_athlete.first_name}?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          You will no longer be able to view {child.team_athlete.first_name}'s workouts and results.
+                          You can re-link later with a new code.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Cancel</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => {
+                            unlinkChild.mutate(child.id, {
+                              onSuccess: () => {
+                                toast({
+                                  title: 'Unlinked',
+                                  description: `You are no longer linked to ${child.team_athlete.first_name}.`,
+                                });
+                              },
+                              onError: (error: any) => {
+                                toast({
+                                  title: 'Failed to unlink',
+                                  description: error.message,
+                                  variant: 'destructive',
+                                });
+                              },
+                            });
+                          }}
+                        >
+                          Unlink
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               ))}
             </CardContent>

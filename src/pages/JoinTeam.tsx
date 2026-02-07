@@ -21,6 +21,7 @@ type JoinTeamFormData = z.infer<typeof joinTeamSchema>;
 type JoinedTeamInfo = {
   id: string;
   name: string;
+  role: 'coach' | 'athlete';
 };
 
 export default function JoinTeam() {
@@ -119,40 +120,7 @@ export default function JoinTeam() {
 
       if (joinError) throw joinError;
 
-      // For athletes, auto-create team_athlete record if one doesn't exist
-      if (assignedRole === 'athlete') {
-        // Check if already linked to a team_athlete record
-        const { data: existingTeamAthlete } = await supabase
-          .from('team_athletes')
-          .select('id')
-          .eq('team_id', team.id)
-          .eq('profile_id', user.id)
-          .maybeSingle();
-
-        if (!existingTeamAthlete) {
-          // Get active season for the team
-          const { data: activeSeason } = await supabase
-            .from('seasons')
-            .select('id')
-            .eq('team_id', team.id)
-            .eq('is_active', true)
-            .maybeSingle();
-
-          // Create team_athlete record
-          await supabase
-            .from('team_athletes')
-            .insert({
-              team_id: team.id,
-              profile_id: user.id,
-              first_name: profile.first_name,
-              last_name: profile.last_name,
-              created_by: user.id,
-              season_id: activeSeason?.id || null,
-            });
-        }
-      }
-
-      setJoinedTeam(team);
+      setJoinedTeam({ ...team, role: assignedRole });
       await refreshProfile();
 
       toast({
@@ -181,6 +149,9 @@ export default function JoinTeam() {
             <CardTitle className="text-2xl font-heading">You're In!</CardTitle>
             <CardDescription>
               You've successfully joined {joinedTeam.name}.
+              {joinedTeam.role === 'athlete' && (
+                <> Your coach will link your account to the team roster.</>
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent>

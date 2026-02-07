@@ -61,6 +61,24 @@ export function useLinkedChildren() {
   });
 }
 
+// Unlink a parent from a child
+export function useUnlinkChild() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (linkId: string) => {
+      const { error } = await supabase
+        .from('parent_athlete_links')
+        .delete()
+        .eq('id', linkId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['linked-children'] });
+    },
+  });
+}
+
 // Generate a parent link code for an athlete (coach or athlete use)
 export function useGenerateParentCode() {
   const queryClient = useQueryClient();

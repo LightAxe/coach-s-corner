@@ -7,7 +7,9 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useToast } from '@/hooks/use-toast';
 import { useUnlinkedTeamMembers } from '@/hooks/useTeamSettings';
-import { useUnlinkedTeamAthletes, useLinkTeamAthlete } from '@/hooks/useTeamAthletes';
+import { useUnlinkedTeamAthletes, useLinkTeamAthlete, useCreateTeamAthlete } from '@/hooks/useTeamAthletes';
+import { useAuth } from '@/contexts/AuthContext';
+import { useActiveSeason } from '@/hooks/useSeasons';
 import {
   Dialog,
   DialogContent,
@@ -31,22 +33,27 @@ interface PendingAccountsSectionProps {
 
 export function PendingAccountsSection({ teamId, seasonId }: PendingAccountsSectionProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { data: activeSeason } = useActiveSeason(teamId);
   const [linkingMember, setLinkingMember] = useState<{
     profileId: string;
     name: string;
+    firstName: string;
+    lastName: string;
   } | null>(null);
   const [selectedAthleteId, setSelectedAthleteId] = useState<string>('');
 
   const { data: unlinkedMembers = [], isLoading: membersLoading } = useUnlinkedTeamMembers(teamId, seasonId);
   const { data: unlinkedAthletes = [], isLoading: athletesLoading } = useUnlinkedTeamAthletes(teamId);
   const linkAthlete = useLinkTeamAthlete();
+  const createAthlete = useCreateTeamAthlete();
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName?.[0] || ''}${lastName?.[0] || ''}`.toUpperCase();
   };
 
   const handleOpenLinkDialog = (profileId: string, firstName: string, lastName: string) => {
-    setLinkingMember({ profileId, name: `${firstName} ${lastName}` });
+    setLinkingMember({ profileId, name: `${firstName} ${lastName}`, firstName, lastName });
     setSelectedAthleteId('');
   };
 
@@ -71,6 +78,40 @@ export function PendingAccountsSection({ teamId, seasonId }: PendingAccountsSect
     } catch (error: any) {
       toast({
         title: 'Failed to link account',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCreateAndLink = async () => {
+    if (!linkingMember || !user) return;
+
+    try {
+      const athlete = await createAthlete.mutateAsync({
+        team_id: teamId,
+        first_name: linkingMember.firstName,
+        last_name: linkingMember.lastName,
+        created_by: user.id,
+        season_id: activeSeason?.id || null,
+      });
+
+      await linkAthlete.mutateAsync({
+        id: athlete.id,
+        team_id: teamId,
+        profile_id: linkingMember.profileId,
+      });
+
+      toast({
+        title: 'Account linked',
+        description: `Created roster entry and linked ${linkingMember.name}'s account.`,
+      });
+
+      setLinkingMember(null);
+      setSelectedAthleteId('');
+    } catch (error: any) {
+      toast({
+        title: 'Failed to create and link',
         description: error.message,
         variant: 'destructive',
       });
@@ -145,7 +186,6 @@ export function PendingAccountsSection({ teamId, seasonId }: PendingAccountsSect
                   variant="outline"
                   size="sm"
                   onClick={() => handleOpenLinkDialog(member.profileId, member.firstName, member.lastName)}
-                  disabled={unlinkedAthletes.length === 0}
                 >
                   <Link2 className="mr-2 h-4 w-4" />
                   Link to Roster
@@ -153,11 +193,6 @@ export function PendingAccountsSection({ teamId, seasonId }: PendingAccountsSect
               </div>
             ))}
 
-            {unlinkedAthletes.length === 0 && (
-              <p className="text-sm text-muted-foreground text-center py-2">
-                No unlinked roster entries to link to. Add athletes to the roster first.
-              </p>
-            )}
           </div>
         </CardContent>
       </Card>
@@ -182,34 +217,47 @@ export function PendingAccountsSection({ teamId, seasonId }: PendingAccountsSect
             </div>
           ) : unlinkedAthletes.length === 0 ? (
             <p className="text-sm text-muted-foreground text-center py-4">
-              No unlinked roster entries available.
+              No unlinked roster entries available. You can create a new roster entry for this athlete.
             </p>
           ) : (
-            <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select a roster entry" />
-              </SelectTrigger>
-              <SelectContent>
-                {unlinkedAthletes.map((athlete) => (
-                  <SelectItem key={athlete.id} value={athlete.id}>
-                    {athlete.first_name} {athlete.last_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div className="space-y-3">
+              <Select value={selectedAthleteId} onValueChange={setSelectedAthleteId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a roster entry" />
+                </SelectTrigger>
+                <SelectContent>
+                  {unlinkedAthletes.map((athlete) => (
+                    <SelectItem key={athlete.id} value={athlete.id}>
+                      {athlete.first_name} {athlete.last_name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           )}
 
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button variant="outline" onClick={() => setLinkingMember(null)}>
               Cancel
             </Button>
-            <Button 
-              onClick={handleLink} 
-              disabled={!selectedAthleteId || linkAthlete.isPending}
+            <Button
+              variant="secondary"
+              onClick={handleCreateAndLink}
+              disabled={createAthlete.isPending || linkAthlete.isPending}
             >
-              {linkAthlete.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Link Account
+              {createAthlete.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <UserPlus className="mr-2 h-4 w-4" />
+              Create & Link
             </Button>
+            {unlinkedAthletes.length > 0 && (
+              <Button
+                onClick={handleLink}
+                disabled={!selectedAthleteId || linkAthlete.isPending}
+              >
+                {linkAthlete.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Link Account
+              </Button>
+            )}
           </DialogFooter>
         </DialogContent>
       </Dialog>
