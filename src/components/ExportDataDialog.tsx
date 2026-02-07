@@ -62,7 +62,7 @@ export function ExportDataDialog({ open, onOpenChange }: ExportDataDialogProps) 
             Download Your Data
           </DialogTitle>
           <DialogDescription>
-            Export a copy of your Training Hub data. This includes: {getDataDescription()}
+            Export a copy of your Faster Pack data. This includes: {getDataDescription()}
           </DialogDescription>
         </DialogHeader>
 

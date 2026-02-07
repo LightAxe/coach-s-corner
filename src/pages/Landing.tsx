@@ -83,9 +83,9 @@ export default function Landing() {
         <div className="max-w-6xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">XC</span>
+              <span className="text-primary-foreground font-bold text-sm">FP</span>
             </div>
-            <span className="font-heading font-semibold text-lg">Training Hub</span>
+            <span className="font-heading font-semibold text-lg">Faster Pack</span>
           </div>
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
@@ -186,7 +186,7 @@ export default function Landing() {
       {/* Footer */}
       <footer className="border-t border-border py-6 px-4 sm:px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-muted-foreground">
-          <span>&copy; {new Date().getFullYear()} XC Training Hub</span>
+          <span>&copy; {new Date().getFullYear()} Faster Pack</span>
           <Link to="/privacy" className="hover:text-foreground transition-colors">
             Privacy Policy
           </Link>
