@@ -7,7 +7,7 @@ export type UserRole = 'coach' | 'athlete' | 'parent';
 
 type Profile = Tables<'profiles'>;
 type TeamMembership = Tables<'team_memberships'> & {
-  teams: { id: string; name: string; join_code: string } | null;
+  teams: { id: string; name: string } | null;
 };
 
 // Data stored during signup before OTP verification
@@ -23,7 +23,7 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   profile: Profile | null;
-  currentTeam: { id: string; name: string; join_code: string } | null;
+  currentTeam: { id: string; name: string } | null;
   teamMemberships: TeamMembership[];
   isLoading: boolean;
   isCoach: boolean;
@@ -35,7 +35,7 @@ interface AuthContextType {
   verifyOtp: (email: string, token: string) => Promise<{ error: Error | null; isNewUser: boolean; needsSignup?: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
-  setCurrentTeam: (team: { id: string; name: string; join_code: string } | null) => void;
+  setCurrentTeam: (team: { id: string; name: string } | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [teamMemberships, setTeamMemberships] = useState<TeamMembership[]>([]);
-  const [currentTeam, setCurrentTeam] = useState<{ id: string; name: string; join_code: string } | null>(null);
+  const [currentTeam, setCurrentTeam] = useState<{ id: string; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [pendingSignupData, setPendingSignupData] = useState<PendingSignupData | null>(null);
 
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const fetchTeamMemberships = async (userId: string) => {
     const { data, error } = await supabase
       .from('team_memberships')
-      .select('*, teams(id, name, join_code)')
+      .select('*, teams(id, name)')
       .eq('profile_id', userId);
     
     if (error) {

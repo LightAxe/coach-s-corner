@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 export interface TeamWithCodes {
   id: string;
   name: string;
-  join_code: string;
+  join_code: string | null;
   coach_invite_code: string | null;
 }
 
@@ -14,7 +14,7 @@ export function useTeamWithCodes(teamId: string | undefined) {
     queryKey: ['team-codes', teamId],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('teams')
+        .from('teams_secure')
         .select('id, name, join_code, coach_invite_code')
         .eq('id', teamId!)
         .single();

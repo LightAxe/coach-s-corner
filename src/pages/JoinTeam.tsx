@@ -45,42 +45,29 @@ export default function JoinTeam() {
     const codeUpper = data.joinCode.toUpperCase();
 
     try {
-      // First, try to find team by athlete join code
-      let { data: team, error: teamError } = await supabase
-        .from('teams')
-        .select('id, name')
-        .eq('join_code', codeUpper)
-        .maybeSingle();
+      // Look up team by code using secure RPC (avoids direct teams table access)
+      const { data: lookupResults, error: lookupError } = await supabase
+        .rpc('lookup_team_by_code', { _code: codeUpper });
 
-      let assignedRole: 'coach' | 'athlete' = 'athlete';
+      if (lookupError) throw lookupError;
 
-      // If not found, try coach invite code
-      if (!team) {
-        const { data: coachTeam, error: coachError } = await supabase
-          .from('teams')
-          .select('id, name')
-          .eq('coach_invite_code', codeUpper)
-          .maybeSingle();
+      const lookup = lookupResults?.[0];
+      let team: { id: string; name: string } | null = lookup ? { id: lookup.id, name: lookup.name } : null;
+      let assignedRole: 'coach' | 'athlete' = (lookup?.code_type === 'coach') ? 'coach' : 'athlete';
 
-        if (coachError) throw coachError;
-
-        if (coachTeam) {
-          // Verify user is actually a coach in their profile
-          if (profile.role !== 'coach') {
-            toast({
-              title: 'Invalid code',
-              description: 'This code is for coaches only. Please use the athlete join code.',
-              variant: 'destructive',
-            });
-            setIsLoading(false);
-            return;
-          }
-          team = coachTeam;
-          assignedRole = 'coach';
+      if (lookup?.code_type === 'coach') {
+        // Verify user is actually a coach in their profile
+        if (profile.role !== 'coach') {
+          toast({
+            title: 'Invalid code',
+            description: 'This code is for coaches only. Please use the athlete join code.',
+            variant: 'destructive',
+          });
+          setIsLoading(false);
+          return;
         }
       }
 
-      if (teamError) throw teamError;
       if (!team) {
         toast({
           title: 'Invalid code',
