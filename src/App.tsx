@@ -4,8 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import { ProtectedRoute } from "./components/ProtectedRoute";
+import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import VerifyOtp from "./pages/VerifyOtp";
@@ -27,6 +28,19 @@ import AuditLog from "./pages/AuditLog";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
+
+function LandingOrDashboard() {
+  const { user, isLoading } = useAuth();
+
+  if (isLoading) return null;
+  if (!user) return <Landing />;
+
+  return (
+    <ProtectedRoute requireTeam>
+      <Dashboard />
+    </ProtectedRoute>
+  );
+}
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -66,11 +80,7 @@ const App = () => (
               } />
 
               {/* Auth + Team required */}
-              <Route path="/" element={
-                <ProtectedRoute requireTeam>
-                  <Dashboard />
-                </ProtectedRoute>
-              } />
+              <Route path="/" element={<LandingOrDashboard />} />
               <Route path="/calendar" element={
                 <ProtectedRoute requireTeam>
                   <Calendar />

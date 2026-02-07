@@ -145,7 +145,25 @@ Currently the app drops visitors straight into the signup/login flow with no con
 
 ---
 
-## 7. Team Score Calculator + Lineup Modeling
+## 7. Attendance History & Athlete Summary
+
+**Status:** Ready to build
+**Owner:** Claude Code
+**Priority:** Medium
+
+Follow-up to attendance v1. Two pieces of remaining work:
+
+### Requirements
+- **History view** on the Attendance page — calendar or table showing past days with summary counts, click a day to view/edit that day's attendance
+- **Per-athlete attendance summary** — attendance rate, current streak, and recent history visible on the athlete detail page or training journal
+
+### Data Sources
+- `useAttendanceRange` hook already exists for date-range queries
+- Athlete detail page is at `src/pages/AthleteDetail.tsx`
+
+---
+
+## 8. Team Score Calculator + Lineup Modeling
 
 **Status:** Needs discussion
 **Owner:** TBD
@@ -168,7 +186,7 @@ XC team scoring: sum of top 5 runners' finishing places. Coaches want "what-if" 
 
 ---
 
-## 8. Results Import
+## 9. Results Import
 
 **Status:** Needs research
 **Owner:** Both
@@ -189,7 +207,7 @@ Bulk import race results from timing systems or Athletic.net instead of manual e
 
 ---
 
-## 9. Coach Analytics Dashboard
+## 10. Coach Analytics Dashboard
 
 **Status:** Needs discussion
 **Owner:** TBD
@@ -215,7 +233,7 @@ Coaches need a centralized analytics view to understand how athletes are trainin
 
 ---
 
-## 10. Mobile App
+## 11. Mobile App
 
 **Status:** Future / needs scoping
 **Owner:** TBD
