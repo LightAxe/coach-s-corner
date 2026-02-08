@@ -83,10 +83,11 @@ export default function CreateTeam() {
         title: 'Team created!',
         description: 'Share the join code with your athletes.',
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
       toast({
         title: 'Failed to create team',
-        description: error.message,
+        description: message,
         variant: 'destructive',
       });
     } finally {
@@ -132,8 +133,8 @@ export default function CreateTeam() {
               </div>
             </div>
 
-            <Button className="w-full" onClick={() => navigate('/')}>
-              Go to Dashboard
+            <Button className="w-full" onClick={() => navigate('/team-settings')}>
+              Create Season
             </Button>
           </CardContent>
         </Card>
