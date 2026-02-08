@@ -14,6 +14,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import { normalizeUSPhone } from '@/lib/phone';
 
 const signupSchema = z.object({
   firstName: z.string()
@@ -26,7 +27,7 @@ const signupSchema = z.object({
     .email('Please enter a valid email')
     .max(255, 'Email too long'),
   phone: z.string()
-    .regex(/^[\d\s\-\(\)\+]*$/, 'Invalid phone format')
+    .regex(/^[\d\s()+-]*$/, 'Invalid phone format')
     .max(20, 'Phone number too long')
     .optional()
     .or(z.literal('')),
@@ -89,11 +90,14 @@ export default function Signup() {
     setIsLoading(true);
     
     // Store signup data for after OTP verification
+    const normalizedPhone = data.phone?.trim()
+      ? normalizeUSPhone(data.phone) ?? data.phone.trim()
+      : '';
     setPendingSignupData({
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
-      phone: data.phone,
+      phone: normalizedPhone,
       role: data.role as UserRole,
     });
     

@@ -13,7 +13,7 @@ Last updated: 2026-02-08
 | 5 | Attendance P/A/E/L buttons are unclear | Root cause identified | Medium |
 | 6 | Team creation should lead to season creation; no-season behavior concerns | Root cause identified | High |
 | 7 | Coaches cannot create off-season race results for athletes | Root cause identified | High |
-| 8 | Multiple users can save the same phone number | Root cause identified | High |
+| 8 | Multiple users can save the same phone number | Fix implemented in repo | High |
 
 ## Detailed Findings
 
@@ -120,6 +120,9 @@ Last updated: 2026-02-08
 - Notes:
   - This can cause ambiguous identity resolution for SMS login and account recovery flows.
   - Recommended direction: normalize phone to canonical E.164 and enforce uniqueness on the normalized value.
+  - Implemented in this repo:
+    - DB trigger now normalizes US phone numbers and rejects duplicates.
+    - Signup and profile update paths now attempt client-side normalization before save.
 
 ## Suggested Fix Order
 
