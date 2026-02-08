@@ -2,6 +2,7 @@ import { Users, CheckCircle, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
+import { useNavigate } from 'react-router-dom';
 
 interface QuickStatsProps {
   totalAthletes: number;
@@ -11,6 +12,8 @@ interface QuickStatsProps {
 }
 
 export function QuickStats({ totalAthletes, workoutsCompleted, weeklyMiles, isLoading }: QuickStatsProps) {
+  const navigate = useNavigate();
+
   const stats = [
     {
       label: 'Athletes',
@@ -18,6 +21,7 @@ export function QuickStats({ totalAthletes, workoutsCompleted, weeklyMiles, isLo
       icon: Users,
       color: 'text-primary',
       bg: 'bg-primary/10',
+      href: '/athletes',
     },
     {
       label: 'Completed Today',
@@ -25,6 +29,7 @@ export function QuickStats({ totalAthletes, workoutsCompleted, weeklyMiles, isLo
       icon: CheckCircle,
       color: 'text-success',
       bg: 'bg-success/10',
+      href: '/calendar',
     },
     {
       label: 'Team Miles (Week)',
@@ -32,6 +37,7 @@ export function QuickStats({ totalAthletes, workoutsCompleted, weeklyMiles, isLo
       icon: TrendingUp,
       color: 'text-info',
       bg: 'bg-info/10',
+      href: '/records',
     },
   ];
 
@@ -56,7 +62,19 @@ export function QuickStats({ totalAthletes, workoutsCompleted, weeklyMiles, isLo
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {stats.map((stat) => (
-        <Card key={stat.label}>
+        <Card
+          key={stat.label}
+          role="button"
+          tabIndex={0}
+          className="cursor-pointer transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+          onClick={() => navigate(stat.href)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              navigate(stat.href);
+            }
+          }}
+        >
           <CardContent className="flex items-center gap-4 p-4">
             <div className={cn(stat.bg, 'rounded-lg p-3')}>
               <stat.icon className={cn('h-5 w-5', stat.color)} />
