@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Home,
   Calendar,
@@ -11,7 +11,8 @@ import {
   X,
   Link2,
   History,
-  ClipboardCheck
+  ClipboardCheck,
+  LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -50,9 +51,16 @@ const navigation: NavItem[] = [
 
 export function AppLayout({ children }: AppLayoutProps) {
   const location = useLocation();
+  const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { isCoach, isAthlete, isParent, currentTeam } = useAuth();
+  const { isCoach, isAthlete, isParent, currentTeam, signOut } = useAuth();
   const { data: activeSeason } = useActiveSeason(currentTeam?.id);
+
+  const handleSignOut = async () => {
+    await signOut();
+    setMobileMenuOpen(false);
+    navigate('/login');
+  };
 
   // Filter navigation based on role
   const visibleNavigation = navigation.filter((item) => {
@@ -110,6 +118,14 @@ export function AppLayout({ children }: AppLayoutProps) {
             })}
             <div className="pt-2 border-t border-border mt-2">
               <RoleSwitcher />
+              <Button
+                variant="ghost"
+                className="w-full justify-start gap-3 mt-2 text-destructive hover:text-destructive"
+                onClick={handleSignOut}
+              >
+                <LogOut className="h-5 w-5" />
+                Sign out
+              </Button>
             </div>
           </nav>
         )}
