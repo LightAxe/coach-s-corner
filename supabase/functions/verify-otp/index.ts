@@ -101,8 +101,9 @@ async function handleSmsVerify(
     );
   }
 
-  // Twilio approved — find user by phone number
+  // Twilio approved — find user by phone number (normalize to last 10 digits)
   const phoneDigits = phone.replace(/\D/g, "");
+  const phoneLast10 = phoneDigits.slice(-10);
   const { data: profiles } = await supabase
     .from("profiles")
     .select("id, email, phone")
@@ -110,7 +111,8 @@ async function handleSmsVerify(
 
   const matchingProfile = profiles?.find((p: { phone: string | null }) => {
     if (!p.phone) return false;
-    return p.phone.replace(/\D/g, "") === phoneDigits;
+    const storedDigits = p.phone.replace(/\D/g, "");
+    return storedDigits.slice(-10) === phoneLast10;
   });
 
   if (!matchingProfile) {
