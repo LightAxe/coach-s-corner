@@ -68,7 +68,9 @@ async function handleSmsSend(
   }
 
   // Verify a profile exists with this phone number
+  // Normalize to last 10 digits for comparison (handles +1, 1, or bare 10-digit storage)
   const phoneDigits = phone.replace(/\D/g, "");
+  const phoneLast10 = phoneDigits.slice(-10);
   const { data: profiles } = await supabase
     .from("profiles")
     .select("id, phone")
@@ -76,7 +78,8 @@ async function handleSmsSend(
 
   const matchingProfile = profiles?.find((p: { phone: string | null }) => {
     if (!p.phone) return false;
-    return p.phone.replace(/\D/g, "") === phoneDigits;
+    const storedDigits = p.phone.replace(/\D/g, "");
+    return storedDigits.slice(-10) === phoneLast10;
   });
 
   if (!matchingProfile) {
