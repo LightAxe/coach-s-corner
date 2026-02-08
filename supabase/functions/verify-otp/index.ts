@@ -101,19 +101,11 @@ async function handleSmsVerify(
     );
   }
 
-  // Twilio approved — find user by phone number (normalize to last 10 digits)
+  // Twilio approved — find user by phone number using DB function
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneLast10 = phoneDigits.slice(-10);
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, email, phone")
-    .not("phone", "is", null);
-
-  const matchingProfile = profiles?.find((p: { phone: string | null }) => {
-    if (!p.phone) return false;
-    const storedDigits = p.phone.replace(/\D/g, "");
-    return storedDigits.slice(-10) === phoneLast10;
-  });
+  const { data: matchingProfiles } = await supabase.rpc("find_profile_by_phone", { _phone_last10: phoneLast10 });
+  const matchingProfile = matchingProfiles?.[0];
 
   if (!matchingProfile) {
     return jsonResponse(
@@ -123,19 +115,17 @@ async function handleSmsVerify(
     );
   }
 
-  // Look up auth user by profile email
-  const { data: existingUsers } = await supabase.auth.admin.listUsers();
-  const authUser = existingUsers?.users?.find(
-    (u: { email?: string }) => u.email?.toLowerCase() === matchingProfile.email?.toLowerCase()
-  );
+  // Look up auth user by profile ID (not listUsers which loads all users)
+  const { data: authData, error: authError } = await supabase.auth.admin.getUserById(matchingProfile.id);
 
-  if (!authUser) {
+  if (authError || !authData?.user) {
     return jsonResponse(
       { success: false, error: "Invalid or expired code. Please try again." },
       400,
       corsHeaders
     );
   }
+  const authUser = authData.user;
 
   // Generate session
   const { data: sessionData, error: sessionError } = await supabase.auth.admin.generateLink({
@@ -198,18 +188,12 @@ async function handleSmsPhoneVerificationVerify(
   // Re-check uniqueness right before write to handle concurrent races.
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneLast10 = phoneDigits.slice(-10);
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, phone")
-    .not("phone", "is", null);
-
-  const conflictingProfile = profiles?.find((p: { id: string; phone: string | null }) => {
-    if (!p.phone || p.id === requesterId) return false;
-    const storedDigits = p.phone.replace(/\D/g, "");
-    return storedDigits.slice(-10) === phoneLast10;
+  const { data: hasConflict } = await supabase.rpc("check_phone_conflict", {
+    _phone_last10: phoneLast10,
+    _exclude_id: requesterId,
   });
 
-  if (conflictingProfile) {
+  if (hasConflict) {
     return jsonResponse({ success: false, error: "Phone number is already in use." }, 409, corsHeaders);
   }
 
@@ -277,11 +261,9 @@ async function handleEmailVerify(
   // Mark OTP as used
   await supabase.from("otp_codes").update({ used: true }).eq("id", otpRecord.id);
 
-  // Check if user exists in auth
-  const { data: existingUsers } = await supabase.auth.admin.listUsers();
-  const existingUser = existingUsers?.users?.find(
-    (u: { email?: string }) => u.email?.toLowerCase() === email.toLowerCase()
-  );
+  // Check if user exists in auth by email
+  const { data: userList } = await supabase.auth.admin.listUsers({ filter: `email.eq.${email.toLowerCase()}`, perPage: 1 });
+  const existingUser = userList?.users?.[0] ?? null;
 
   let userId: string;
   let isNewUser = false;
