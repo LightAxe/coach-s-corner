@@ -319,15 +319,14 @@ function CoachAttendanceView() {
                             variant="outline"
                             size="sm"
                             className={cn(
-                              'h-8 w-8 p-0 text-xs font-semibold',
-                              currentStatus === status
-                                ? STATUS_CONFIG[status].color
-                                : 'text-muted-foreground'
+                              'h-8 px-2 text-xs font-semibold',
+                              STATUS_CONFIG[status].color,
+                              currentStatus === status && 'ring-2 ring-offset-1 ring-primary'
                             )}
                             onClick={() => handleStatusChange(athlete.id, status)}
                             disabled={upsertAttendance.isPending}
                           >
-                            {STATUS_CONFIG[status].short}
+                            {STATUS_CONFIG[status].label}
                           </Button>
                         ))}
                       </div>
