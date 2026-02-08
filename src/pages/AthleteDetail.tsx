@@ -107,35 +107,37 @@ export default function AthleteDetail() {
         {/* Athlete info card */}
         <Card>
           <CardHeader>
-            <div className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
-                  {getInitials(athlete.first_name, athlete.last_name)}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-1">
-                  <CardTitle className="text-2xl">
-                    {athleteName}
-                  </CardTitle>
-                  {!isLinked && (
-                    <Badge variant="outline" className="text-muted-foreground">
-                      Not in app
-                    </Badge>
-                  )}
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div className="flex items-start gap-4 min-w-0">
+                <Avatar className="h-16 w-16 shrink-0">
+                  <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
+                    {getInitials(athlete.first_name, athlete.last_name)}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                    <CardTitle className="text-2xl break-words">
+                      {athleteName}
+                    </CardTitle>
+                    {!isLinked && (
+                      <Badge variant="outline" className="text-muted-foreground">
+                        Not in app
+                      </Badge>
+                    )}
+                  </div>
+                  <p className="text-sm text-muted-foreground flex items-center gap-1">
+                    <Calendar className="h-3 w-3 shrink-0" />
+                    Added {format(new Date(athlete.created_at), 'MMM d, yyyy')}
+                  </p>
                 </div>
-                <p className="text-sm text-muted-foreground flex items-center gap-1">
-                  <Calendar className="h-3 w-3" />
-                  Added {format(new Date(athlete.created_at), 'MMM d, yyyy')}
-                </p>
               </div>
               {/* Action Buttons */}
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 sm:ml-auto">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => setEditAthleteOpen(true)}
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto"
                 >
                   <Pencil className="h-4 w-4" />
                   Edit
@@ -144,7 +146,7 @@ export default function AthleteDetail() {
                   variant="outline"
                   size="sm"
                   onClick={() => setParentCodeDialogOpen(true)}
-                  className="gap-2"
+                  className="gap-2 w-full sm:w-auto"
                 >
                   <Users className="h-4 w-4" />
                   Parent Access
@@ -153,7 +155,7 @@ export default function AthleteDetail() {
                   variant="outline"
                   size="sm"
                   onClick={() => setRemoveAthleteOpen(true)}
-                  className="gap-2 text-destructive hover:text-destructive"
+                  className="gap-2 w-full sm:w-auto text-destructive hover:text-destructive"
                 >
                   <UserMinus className="h-4 w-4" />
                   Remove
