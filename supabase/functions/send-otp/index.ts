@@ -132,6 +132,73 @@ async function handleSmsSend(
   return jsonResponse({ success: true, message: "OTP sent successfully" }, 200, corsHeaders);
 }
 
+async function handleSmsPhoneVerificationSend(
+  phone: string,
+  requesterId: string,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  if (!/^\+1\d{10}$/.test(phone)) {
+    return jsonResponse({ success: false, error: "Invalid US phone number" }, 400, corsHeaders);
+  }
+
+  // Prevent using a phone number that belongs to another profile.
+  const phoneDigits = phone.replace(/\D/g, "");
+  const phoneLast10 = phoneDigits.slice(-10);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, phone")
+    .not("phone", "is", null);
+
+  const conflictingProfile = profiles?.find((p: { id: string; phone: string | null }) => {
+    if (!p.phone || p.id === requesterId) return false;
+    const storedDigits = p.phone.replace(/\D/g, "");
+    return storedDigits.slice(-10) === phoneLast10;
+  });
+
+  if (conflictingProfile) {
+    return jsonResponse({ success: false, error: "Phone number is already in use." }, 409, corsHeaders);
+  }
+
+  const withinRateLimit = await checkRateLimit(supabase, phone);
+  if (!withinRateLimit) {
+    return jsonResponse(
+      { success: false, error: "Too many requests. Please try again later." },
+      429,
+      corsHeaders
+    );
+  }
+  await recordRateLimit(supabase, phone);
+
+  const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
+  const TWILIO_VERIFY_SERVICE_SID = Deno.env.get("TWILIO_VERIFY_SERVICE_SID");
+
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_VERIFY_SERVICE_SID) {
+    console.error("Twilio environment variables not configured");
+    return jsonResponse({ success: false, error: "SMS service not configured" }, 500, corsHeaders);
+  }
+
+  const twilioUrl = `${TWILIO_VERIFY_BASE}/${TWILIO_VERIFY_SERVICE_SID}/Verifications`;
+  const twilioResponse = await fetch(twilioUrl, {
+    method: "POST",
+    headers: {
+      "Authorization": `Basic ${btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({ To: phone, Channel: "sms" }),
+  });
+
+  if (!twilioResponse.ok) {
+    const errText = await twilioResponse.text();
+    console.error("Twilio Verify error:", errText);
+    return jsonResponse({ success: false, error: "Failed to send SMS code" }, 500, corsHeaders);
+  }
+
+  return jsonResponse({ success: true, message: "OTP sent successfully" }, 200, corsHeaders);
+}
+
 // ── Email flow via Resend (unchanged) ───────────────────────────────────────
 async function handleEmailSend(
   email: string,
@@ -260,6 +327,7 @@ serve(async (req) => {
     // Backwards compat: accept { email } as { identifier, method: 'email' }
     const identifier: string = body.identifier ?? body.email;
     const method: string = body.method ?? "email";
+    const purpose: string = body.purpose ?? "login";
 
     if (!identifier) {
       throw new Error("Identifier is required");
@@ -275,6 +343,25 @@ serve(async (req) => {
     // Opportunistic cleanup
     await supabase.rpc("cleanup_expired_otp_codes");
     await supabase.rpc("cleanup_otp_rate_limits");
+
+    if (purpose === "phone_verification") {
+      if (method !== "sms") {
+        return jsonResponse({ success: false, error: "Phone verification requires SMS." }, 400, corsHeaders);
+      }
+
+      const authHeader = req.headers.get("Authorization");
+      const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+      if (!token) {
+        return jsonResponse({ success: false, error: "Unauthorized" }, 401, corsHeaders);
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !userData.user) {
+        return jsonResponse({ success: false, error: "Unauthorized" }, 401, corsHeaders);
+      }
+
+      return await handleSmsPhoneVerificationSend(identifier, userData.user.id, supabase, corsHeaders);
+    }
 
     if (method === "sms") {
       return await handleSmsSend(identifier, supabase, corsHeaders);

@@ -160,6 +160,72 @@ async function handleSmsVerify(
   );
 }
 
+async function handleSmsPhoneVerificationVerify(
+  phone: string,
+  code: string,
+  requesterId: string,
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  corsHeaders: Record<string, string>
+): Promise<Response> {
+  const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
+  const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
+  const TWILIO_VERIFY_SERVICE_SID = Deno.env.get("TWILIO_VERIFY_SERVICE_SID");
+
+  if (!TWILIO_ACCOUNT_SID || !TWILIO_AUTH_TOKEN || !TWILIO_VERIFY_SERVICE_SID) {
+    return jsonResponse({ success: false, error: "SMS service not configured" }, 500, corsHeaders);
+  }
+
+  const twilioUrl = `${TWILIO_VERIFY_BASE}/${TWILIO_VERIFY_SERVICE_SID}/VerificationChecks`;
+  const twilioResponse = await fetch(twilioUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${btoa(`${TWILIO_ACCOUNT_SID}:${TWILIO_AUTH_TOKEN}`)}`,
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: new URLSearchParams({ To: phone, Code: code }),
+  });
+
+  const twilioData = await twilioResponse.json();
+  if (!twilioResponse.ok || twilioData.status !== "approved") {
+    return jsonResponse(
+      { success: false, error: "Invalid or expired code. Please try again." },
+      400,
+      corsHeaders
+    );
+  }
+
+  // Re-check uniqueness right before write to handle concurrent races.
+  const phoneDigits = phone.replace(/\D/g, "");
+  const phoneLast10 = phoneDigits.slice(-10);
+  const { data: profiles } = await supabase
+    .from("profiles")
+    .select("id, phone")
+    .not("phone", "is", null);
+
+  const conflictingProfile = profiles?.find((p: { id: string; phone: string | null }) => {
+    if (!p.phone || p.id === requesterId) return false;
+    const storedDigits = p.phone.replace(/\D/g, "");
+    return storedDigits.slice(-10) === phoneLast10;
+  });
+
+  if (conflictingProfile) {
+    return jsonResponse({ success: false, error: "Phone number is already in use." }, 409, corsHeaders);
+  }
+
+  const { error: updateError } = await supabase
+    .from("profiles")
+    .update({ phone })
+    .eq("id", requesterId);
+
+  if (updateError) {
+    console.error("Error updating verified phone:", updateError);
+    return jsonResponse({ success: false, error: "Failed to save verified phone." }, 500, corsHeaders);
+  }
+
+  return jsonResponse({ success: true, phoneVerified: true }, 200, corsHeaders);
+}
+
 // ── Email verification (existing flow, unchanged) ───────────────────────────
 async function handleEmailVerify(
   email: string,
@@ -246,7 +312,7 @@ async function handleEmailVerify(
         first_name: signupData.firstName,
         last_name: signupData.lastName,
         email: email.toLowerCase(),
-        phone: signupData.phone || null,
+        phone: null,
         role: signupData.role,
       });
       if (profileError) {
@@ -283,7 +349,7 @@ async function handleEmailVerify(
       first_name: signupData.firstName,
       last_name: signupData.lastName,
       email: email.toLowerCase(),
-      phone: signupData.phone || null,
+      phone: null,
       role: signupData.role,
     });
 
@@ -335,6 +401,7 @@ serve(async (req) => {
     // Backwards compat: accept { email, code } as { identifier, method: 'email', code }
     const identifier: string = body.identifier ?? body.email;
     const method: string = body.method ?? "email";
+    const purpose: string = body.purpose ?? "login";
     const code: string = body.code;
     const signupData: SignupData | undefined = body.signupData;
 
@@ -373,6 +440,25 @@ serve(async (req) => {
       );
     }
     await recordVerifyAttempt(supabase, identifier);
+
+    if (purpose === "phone_verification") {
+      if (method !== "sms") {
+        return jsonResponse({ success: false, error: "Phone verification requires SMS." }, 400, corsHeaders);
+      }
+
+      const authHeader = req.headers.get("Authorization");
+      const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+      if (!token) {
+        return jsonResponse({ success: false, error: "Unauthorized" }, 401, corsHeaders);
+      }
+
+      const { data: userData, error: userError } = await supabase.auth.getUser(token);
+      if (userError || !userData.user) {
+        return jsonResponse({ success: false, error: "Unauthorized" }, 401, corsHeaders);
+      }
+
+      return await handleSmsPhoneVerificationVerify(identifier, sanitizedCode, userData.user.id, supabase, corsHeaders);
+    }
 
     if (method === "sms") {
       return await handleSmsVerify(identifier, sanitizedCode, supabase, corsHeaders);

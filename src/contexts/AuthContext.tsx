@@ -19,6 +19,8 @@ export interface PendingSignupData {
   role: UserRole;
 }
 
+type OtpPurpose = 'login' | 'phone_verification';
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
@@ -31,8 +33,10 @@ interface AuthContextType {
   isParent: boolean;
   pendingSignupData: PendingSignupData | null;
   setPendingSignupData: (data: PendingSignupData | null) => void;
-  sendOtp: (identifier: string, method?: 'email' | 'sms') => Promise<{ error: Error | null }>;
+  sendOtp: (identifier: string, method?: 'email' | 'sms', purpose?: OtpPurpose) => Promise<{ error: Error | null }>;
   verifyOtp: (identifier: string, token: string, method?: 'email' | 'sms') => Promise<{ error: Error | null; isNewUser: boolean; needsSignup?: boolean }>;
+  sendPhoneVerificationOtp: (phone: string) => Promise<{ error: Error | null }>;
+  verifyPhoneOtp: (phone: string, code: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   setCurrentTeam: (team: { id: string; name: string } | null) => void;
@@ -47,7 +51,22 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [teamMemberships, setTeamMemberships] = useState<TeamMembership[]>([]);
   const [currentTeam, setCurrentTeam] = useState<{ id: string; name: string } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [pendingSignupData, setPendingSignupData] = useState<PendingSignupData | null>(null);
+  const [pendingSignupData, setPendingSignupData] = useState<PendingSignupData | null>(() => {
+    try {
+      const raw = sessionStorage.getItem('pending-signup-data');
+      return raw ? JSON.parse(raw) as PendingSignupData : null;
+    } catch {
+      return null;
+    }
+  });
+
+  useEffect(() => {
+    if (pendingSignupData) {
+      sessionStorage.setItem('pending-signup-data', JSON.stringify(pendingSignupData));
+    } else {
+      sessionStorage.removeItem('pending-signup-data');
+    }
+  }, [pendingSignupData]);
 
   const fetchProfile = async (userId: string) => {
     const { data, error } = await supabase
@@ -136,8 +155,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const sendOtp = async (identifier: string, method: 'email' | 'sms' = 'email') => {
+  const getAuthHeader = async () => {
+    const { data } = await supabase.auth.getSession();
+    const token = data.session?.access_token;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
+  const sendOtp = async (
+    identifier: string,
+    method: 'email' | 'sms' = 'email',
+    purpose: OtpPurpose = 'login'
+  ) => {
     try {
+      const authHeader = purpose === 'phone_verification' ? await getAuthHeader() : {};
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-otp`,
         {
@@ -145,8 +175,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           headers: {
             'Content-Type': 'application/json',
             'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...authHeader,
           },
-          body: JSON.stringify({ identifier, method }),
+          body: JSON.stringify({ identifier, method, purpose }),
         }
       );
 
@@ -175,6 +206,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           body: JSON.stringify({
             identifier,
             method,
+            purpose: 'login',
             code: token,
             signupData: pendingSignupData ? {
               firstName: pendingSignupData.firstName,
@@ -198,7 +230,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       // Clear pending signup data after successful verification
       const isNewUser = data.isNewUser;
-      if (isNewUser) {
+      if (isNewUser && !pendingSignupData?.phone) {
         setPendingSignupData(null);
       }
 
@@ -225,6 +257,42 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return { error: null, isNewUser, needsSignup: false };
     } catch (error) {
       return { error: error as Error, isNewUser: false, needsSignup: false };
+    }
+  };
+
+  const sendPhoneVerificationOtp = async (phone: string) => {
+    return sendOtp(phone, 'sms', 'phone_verification');
+  };
+
+  const verifyPhoneOtp = async (phone: string, code: string) => {
+    try {
+      const authHeader = await getAuthHeader();
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/verify-otp`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'apikey': import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
+            ...authHeader,
+          },
+          body: JSON.stringify({
+            identifier: phone,
+            method: 'sms',
+            purpose: 'phone_verification',
+            code,
+          }),
+        }
+      );
+
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data.error || 'Invalid verification code');
+      }
+
+      return { error: null };
+    } catch (error) {
+      return { error: error as Error };
     }
   };
 
@@ -257,6 +325,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setPendingSignupData,
       sendOtp,
       verifyOtp,
+      sendPhoneVerificationOtp,
+      verifyPhoneOtp,
       signOut,
       refreshProfile,
       setCurrentTeam

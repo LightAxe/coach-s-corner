@@ -59,6 +59,11 @@ export default function VerifyOtp() {
       });
 
       if (isSignup && pendingSignupData) {
+        if (pendingSignupData.phone) {
+          navigate('/verify-phone');
+          return;
+        }
+
         if (pendingSignupData.role === 'coach') {
           navigate('/create-team');
         } else if (pendingSignupData.role === 'parent') {

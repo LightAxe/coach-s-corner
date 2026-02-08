@@ -10,7 +10,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requireTeam = false }: ProtectedRouteProps) {
-  const { user, profile, teamMemberships, isLoading, refreshProfile, isParent } = useAuth();
+  const { user, profile, teamMemberships, isLoading, refreshProfile, isParent, pendingSignupData } = useAuth();
   const location = useLocation();
   const [hasCheckedProfile, setHasCheckedProfile] = useState(false);
 
@@ -53,6 +53,11 @@ export function ProtectedRoute({ children, requireTeam = false }: ProtectedRoute
   // User exists but confirmed no profile after refresh - redirect to signup
   if (!profile && hasCheckedProfile) {
     return <Navigate to="/signup" replace />;
+  }
+
+  // During signup onboarding, require phone verification before team onboarding steps.
+  if (pendingSignupData?.phone && location.pathname !== '/verify-phone') {
+    return <Navigate to="/verify-phone" replace />;
   }
 
   // Parents have a different access model - they don't need team membership

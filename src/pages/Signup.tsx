@@ -30,7 +30,8 @@ const signupSchema = z.object({
     .regex(/^[\d\s()+-]*$/, 'Invalid phone format')
     .max(20, 'Phone number too long')
     .optional()
-    .or(z.literal('')),
+    .or(z.literal(''))
+    .refine((value) => !value || normalizeUSPhone(value) !== null, 'Please enter a valid US phone number'),
   role: z.enum(['coach', 'athlete', 'parent'], {
     required_error: 'Please select a role',
   }),
@@ -97,7 +98,7 @@ export default function Signup() {
       firstName: data.firstName,
       lastName: data.lastName,
       email: data.email,
-      phone: normalizedPhone,
+      phone: normalizedPhone || undefined,
       role: data.role as UserRole,
     });
     
