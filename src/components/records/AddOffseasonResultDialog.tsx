@@ -8,7 +8,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useAuth } from '@/contexts/AuthContext';
 import { useDistances } from '@/hooks/useDistances';
 import { useTeamAthletes } from '@/hooks/useTeamAthletes';
-import { useActiveSeason } from '@/hooks/useSeasons';
 import { useCreateRaceResult } from '@/hooks/useRaceResults';
 import { parseTimeToSeconds } from '@/lib/types';
 import { toast } from 'sonner';
@@ -22,11 +21,9 @@ interface AddOffseasonResultDialogProps {
 export function AddOffseasonResultDialog({ open, onOpenChange }: AddOffseasonResultDialogProps) {
   const { user, currentTeam } = useAuth();
   const teamId = currentTeam?.id;
-  const { data: activeSeason } = useActiveSeason(teamId);
-  const seasonId = activeSeason?.id;
   
   const { data: distances = [] } = useDistances();
-  const { data: athletes = [] } = useTeamAthletes(teamId, seasonId);
+  const { data: athletes = [] } = useTeamAthletes(teamId);
   const createResult = useCreateRaceResult();
 
   const [athleteId, setAthleteId] = useState('');
