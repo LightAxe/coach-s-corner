@@ -68,19 +68,10 @@ async function handleSmsSend(
   }
 
   // Verify a profile exists with this phone number
-  // Normalize to last 10 digits for comparison (handles +1, 1, or bare 10-digit storage)
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneLast10 = phoneDigits.slice(-10);
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, phone")
-    .not("phone", "is", null);
-
-  const matchingProfile = profiles?.find((p: { phone: string | null }) => {
-    if (!p.phone) return false;
-    const storedDigits = p.phone.replace(/\D/g, "");
-    return storedDigits.slice(-10) === phoneLast10;
-  });
+  const { data: matchingProfiles } = await supabase.rpc("find_profile_by_phone", { _phone_last10: phoneLast10 });
+  const matchingProfile = matchingProfiles?.[0];
 
   if (!matchingProfile) {
     // Generic message to prevent enumeration
@@ -146,18 +137,12 @@ async function handleSmsPhoneVerificationSend(
   // Prevent using a phone number that belongs to another profile.
   const phoneDigits = phone.replace(/\D/g, "");
   const phoneLast10 = phoneDigits.slice(-10);
-  const { data: profiles } = await supabase
-    .from("profiles")
-    .select("id, phone")
-    .not("phone", "is", null);
-
-  const conflictingProfile = profiles?.find((p: { id: string; phone: string | null }) => {
-    if (!p.phone || p.id === requesterId) return false;
-    const storedDigits = p.phone.replace(/\D/g, "");
-    return storedDigits.slice(-10) === phoneLast10;
+  const { data: hasConflict } = await supabase.rpc("check_phone_conflict", {
+    _phone_last10: phoneLast10,
+    _exclude_id: requesterId,
   });
 
-  if (conflictingProfile) {
+  if (hasConflict) {
     return jsonResponse({ success: false, error: "Phone number is already in use." }, 409, corsHeaders);
   }
 

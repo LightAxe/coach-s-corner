@@ -1155,8 +1155,20 @@ export type Database = {
     }
     Functions: {
       can_view_athlete: { Args: { _athlete_id: string }; Returns: boolean }
+      check_phone_conflict: {
+        Args: { _exclude_id: string; _phone_last10: string }
+        Returns: boolean
+      }
       cleanup_expired_otp_codes: { Args: never; Returns: undefined }
       cleanup_otp_rate_limits: { Args: never; Returns: undefined }
+      find_profile_by_phone: {
+        Args: { _phone_last10: string }
+        Returns: {
+          email: string
+          id: string
+          phone: string
+        }[]
+      }
       generate_coach_invite_code: {
         Args: { _team_id: string }
         Returns: string
