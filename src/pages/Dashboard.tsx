@@ -21,18 +21,8 @@ import {
   useRecentAthleteActivity
 } from '@/hooks/useDashboardData';
 
-export default function Dashboard() {
-  const { currentTeam, isCoach, isAthlete, isParent } = useAuth();
-
-  // If parent, render parent-specific dashboard
-  if (isParent) {
-    return (
-      <AppLayout>
-        <ParentDashboard />
-      </AppLayout>
-    );
-  }
-
+function CoachAthleteDashboard() {
+  const { currentTeam, isCoach, isAthlete } = useAuth();
   const teamId = currentTeam?.id;
   const { data: activeSeason } = useActiveSeason(teamId);
 
@@ -52,60 +42,63 @@ export default function Dashboard() {
   );
 
   return (
-    <AppLayout>
-      <div className="space-y-6">
-        {/* Page header */}
-        <div>
-          <h1 className="text-2xl font-heading font-bold">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back! Here's what's happening with your team.
-          </p>
+    <div className="space-y-6">
+      <div>
+        <h1 className="text-2xl font-heading font-bold">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Welcome back! Here's what's happening with your team.
+        </p>
+      </div>
+
+      <QuickStats 
+        totalAthletes={stats?.totalAthletes ?? 0}
+        workoutsCompleted={stats?.workoutsCompleted ?? 0}
+        weeklyMiles={stats?.weeklyMiles ?? 0}
+        isLoading={statsLoading}
+      />
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="space-y-6">
+          {todayRace ? (
+            <TodayRace race={todayRace} isLoading={raceLoading} />
+          ) : (
+            <TodayWorkout workout={todayWorkout} isLoading={todayLoading} />
+          )}
+          {isCoach && (
+            <WorkoutCompliance
+              workout={todayWorkout ?? null}
+              athletes={teamAthletes}
+              isLoading={todayLoading || athletesLoading}
+            />
+          )}
+          <AnnouncementCard announcements={announcements} isLoading={announcementsLoading} isCoach={isCoach} />
         </div>
 
-        {/* Quick stats */}
-        <QuickStats 
-          totalAthletes={stats?.totalAthletes ?? 0}
-          workoutsCompleted={stats?.workoutsCompleted ?? 0}
-          weeklyMiles={stats?.weeklyMiles ?? 0}
-          isLoading={statsLoading}
-        />
-
-        {/* Main content grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left column */}
-          <div className="space-y-6">
-            {todayRace ? (
-              <TodayRace race={todayRace} isLoading={raceLoading} />
-            ) : (
-              <TodayWorkout workout={todayWorkout} isLoading={todayLoading} />
-            )}
-            {isCoach && (
-              <WorkoutCompliance
-                workout={todayWorkout ?? null}
-                athletes={teamAthletes}
-                isLoading={todayLoading || athletesLoading}
-              />
-            )}
-            <AnnouncementCard announcements={announcements} isLoading={announcementsLoading} isCoach={isCoach} />
-          </div>
-
-          {/* Right column */}
-          <div className="space-y-6">
-            <WeekPreview 
-              workouts={weekWorkouts} 
-              races={weekRaces}
-              isLoading={weekLoading || weekRacesLoading} 
+        <div className="space-y-6">
+          <WeekPreview 
+            workouts={weekWorkouts} 
+            races={weekRaces}
+            isLoading={weekLoading || weekRacesLoading} 
+          />
+          {isCoach && (
+            <RecentAthleteActivity 
+              activities={recentActivity} 
+              isLoading={activityLoading} 
             />
-            {isCoach && (
-              <RecentAthleteActivity 
-                activities={recentActivity} 
-                isLoading={activityLoading} 
-              />
-            )}
-            {isAthlete && <ParentAccessCard />}
-          </div>
+          )}
+          {isAthlete && <ParentAccessCard />}
         </div>
       </div>
+    </div>
+  );
+}
+
+export default function Dashboard() {
+  const { isParent } = useAuth();
+
+  return (
+    <AppLayout>
+      {isParent ? <ParentDashboard /> : <CoachAthleteDashboard />}
     </AppLayout>
   );
 }

@@ -156,11 +156,6 @@ function AuditLogItem({ log }: { log: AuditLogEntry }) {
 export default function AuditLogPage() {
   const { isCoach } = useAuth();
   const { data: logs = [], isLoading } = useAuditLogs(500);
-
-  if (!isCoach) {
-    return <Navigate to="/" replace />;
-  }
-
   const {
     paginatedItems: paginatedLogs,
     currentPage,
@@ -170,6 +165,10 @@ export default function AuditLogPage() {
     startIndex,
     endIndex,
   } = usePagination(logs, { pageSize: 25 });
+
+  if (!isCoach) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <AppLayout>

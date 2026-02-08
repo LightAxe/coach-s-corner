@@ -34,11 +34,6 @@ export default function Athletes() {
   const athleteIds = useMemo(() => teamAthletes.map(a => a.id), [teamAthletes]);
   const { data: athleteStats, isLoading: statsLoading } = useTeamAthleteStats(athleteIds);
 
-  // Redirect non-coaches
-  if (!isCoach) {
-    return <Navigate to="/" replace />;
-  }
-
   const isLoading = membersLoading || athletesLoading;
 
   // Filter coaches from team_memberships
@@ -70,6 +65,11 @@ export default function Athletes() {
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase();
   };
+
+  // Redirect non-coaches (after all hooks)
+  if (!isCoach) {
+    return <Navigate to="/" replace />;
+  }
 
   return (
     <AppLayout>
